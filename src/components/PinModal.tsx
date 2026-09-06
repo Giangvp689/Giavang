@@ -6,13 +6,15 @@ interface PinModalProps {
   onClose: () => void;
   onSuccess: () => void;
   correctPin?: string;
+  storeName?: string;
 }
 
 export const PinModal: React.FC<PinModalProps> = ({
   isOpen,
   onClose,
   onSuccess,
-  correctPin = '1234'
+  correctPin = '1234',
+  storeName = 'Tiệm Vàng'
 }) => {
   const [pin, setPin] = useState<string>('');
   const [error, setError] = useState<string>('');
@@ -78,8 +80,8 @@ export const PinModal: React.FC<PinModalProps> = ({
               <h3 className="font-serif font-black text-base text-amber-200 uppercase tracking-wider">
                 Quản Trị Chủ Tiệm
               </h3>
-              <p className="text-[11px] text-amber-100 font-medium">
-                Tiệm Vàng Đức Kỳ • Sơn Tây
+              <p className="text-[11px] text-amber-100 font-medium truncate max-w-[200px]">
+                {storeName}
               </p>
             </div>
           </div>

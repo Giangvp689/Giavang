@@ -12,11 +12,22 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({
   onSuccess,
   onBackToTV,
   correctPin = '1234',
-  storeName = 'TIỆM VÀNG ĐỨC KỲ'
+  storeName = 'TIỆM VÀNG'
 }) => {
   const [pin, setPin] = useState<string>('');
   const [error, setError] = useState<string>('');
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const getInitials = (name?: string) => {
+    if (!name) return 'TV';
+    const words = name.trim().split(/\s+/);
+    if (words.length >= 2) {
+      const last = words[words.length - 1];
+      const secondLast = words[words.length - 2];
+      return `${secondLast[0] || ''}${last[0] || ''}`.toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
+  };
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -68,8 +79,8 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({
         {/* Header Đỏ Tiệm Vàng */}
         <div className="bg-gradient-to-r from-red-900 via-[#B91C1C] to-red-900 text-white px-6 py-5 text-center relative border-b-2 border-amber-400">
           <div className="w-14 h-14 mx-auto mb-2 rounded-2xl bg-gradient-to-br from-amber-300 via-yellow-400 to-amber-500 p-0.5 shadow-md">
-            <div className="w-full h-full bg-red-900 rounded-[14px] flex items-center justify-center text-amber-300 font-serif font-black text-2xl shadow-inner">
-              ĐK
+            <div className="w-full h-full bg-red-900 rounded-[14px] flex items-center justify-center text-amber-300 font-serif font-black text-xl sm:text-2xl shadow-inner">
+              {getInitials(storeName)}
             </div>
           </div>
           <h2 className="text-xl font-black font-serif uppercase tracking-wider text-amber-200">

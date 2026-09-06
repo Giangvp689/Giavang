@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Save, 
   RefreshCw, 
@@ -46,6 +46,7 @@ interface MobileAdminProps {
   onChangeUnit: (unit: UnitType) => void;
   onUpdateItems: (items: GoldItem[]) => void;
   onUpdateSettings: (settings: StoreSettings) => void;
+  onSaveAll?: (items: GoldItem[], settings: StoreSettings) => Promise<boolean> | void;
   onRefreshMarket: () => void;
   isRefreshing: boolean;
   onOpenTV: () => void;
@@ -61,6 +62,7 @@ export const MobileAdmin: React.FC<MobileAdminProps> = ({
   onChangeUnit,
   onUpdateItems,
   onUpdateSettings,
+  onSaveAll,
   onRefreshMarket,
   isRefreshing,
   onOpenTV,
@@ -75,8 +77,29 @@ export const MobileAdmin: React.FC<MobileAdminProps> = ({
   const [localItems, setLocalItems] = useState<GoldItem[]>(items);
   const [localSettings, setLocalSettings] = useState<StoreSettings>(settings);
   const [savedNotification, setSavedNotification] = useState<boolean>(false);
+  const [savedNotificationText, setSavedNotificationText] = useState<string>('');
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+  const isSettingsDirtyRef = useRef<boolean>(false);
   const [copiedLink, setCopiedLink] = useState<'tv' | 'admin' | null>(null);
   const [brandFilter, setBrandFilter] = useState<string>('ALL');
+
+  // Compute initials for store crest
+  const getInitials = (name: string) => {
+    if (!name) return 'TV';
+    const words = name.trim().split(/\s+/);
+    if (words.length >= 2) {
+      const last = words[words.length - 1];
+      const secondLast = words[words.length - 2];
+      return `${secondLast[0] || ''}${last[0] || ''}`.toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
+  };
+
+  // Safe setter for settings field that marks dirty
+  const updateSettingsField = (patch: Partial<StoreSettings>) => {
+    isSettingsDirtyRef.current = true;
+    setLocalSettings(prev => ({ ...prev, ...patch }));
+  };
 
   // Modal states for adding, editing & deleting gold items
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
@@ -101,13 +124,15 @@ export const MobileAdmin: React.FC<MobileAdminProps> = ({
   // Delete confirmation
   const [deleteConfirmItem, setDeleteConfirmItem] = useState<GoldItem | null>(null);
 
-  // Sync with incoming props
+  // Sync with incoming props safely
   useEffect(() => {
     setLocalItems(items);
   }, [items]);
 
   useEffect(() => {
-    setLocalSettings(settings);
+    if (!isSettingsDirtyRef.current) {
+      setLocalSettings(settings);
+    }
   }, [settings]);
 
   // Base URL calculation for sharing
@@ -115,14 +140,28 @@ export const MobileAdmin: React.FC<MobileAdminProps> = ({
   const tvUrl = `${origin}/?mode=tv`;
   const adminUrl = `${origin}/?mode=admin`;
 
-  // Save all to Cloud Firestore & TV immediately
-  const handleSave = () => {
-    onUpdateSettings(localSettings);
-    onUpdateItems(localItems);
+  // Save all to Cloud Firestore & TV immediately without race conditions
+  const handleSave = async () => {
+    setIsSaving(true);
+    isSettingsDirtyRef.current = false;
+    try {
+      if (onSaveAll) {
+        await onSaveAll(localItems, localSettings);
+      } else {
+        onUpdateSettings(localSettings);
+        onUpdateItems(localItems);
+      }
+    } catch (err) {
+      console.error('Error saving in MobileAdmin:', err);
+    } finally {
+      setIsSaving(false);
+    }
+
+    setSavedNotificationText(`Đã lưu thành công! Thông tin tiệm "${localSettings.storeName || 'Tiệm Vàng'}" và bảng giá đã đồng bộ lên TV.`);
     setSavedNotification(true);
     setTimeout(() => {
       setSavedNotification(false);
-    }, 3000);
+    }, 3500);
   };
 
   // Add new gold item
@@ -358,14 +397,14 @@ export const MobileAdmin: React.FC<MobileAdminProps> = ({
           {/* Brand & Store Name */}
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 p-0.5 shadow-xs flex-shrink-0">
-              <div className="w-full h-full bg-red-900 rounded-[10px] flex items-center justify-center text-amber-300 font-serif font-black text-sm">
-                ĐK
+              <div className="w-full h-full bg-red-900 rounded-[10px] flex items-center justify-center text-amber-300 font-serif font-black text-xs sm:text-sm">
+                {getInitials(localSettings.storeName)}
               </div>
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
                 <h1 className="text-sm sm:text-base font-black font-serif uppercase tracking-wider text-red-800 truncate">
-                  {localSettings.storeName || "TIỆM VÀNG ĐỨC KỲ"}
+                  {localSettings.storeName || "TIỆM VÀNG"}
                 </h1>
                 <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-100 text-amber-900 font-bold border border-amber-300">
                   Chủ Tiệm
@@ -407,10 +446,10 @@ export const MobileAdmin: React.FC<MobileAdminProps> = ({
 
         {/* Saved Toast Notification */}
         {savedNotification && (
-          <div className="mt-2 p-2 rounded-xl bg-emerald-600 text-white text-xs font-bold flex items-center justify-between shadow-md animate-fade-in">
-            <div className="flex items-center gap-1.5">
-              <CheckCircle2 className="w-4 h-4 text-emerald-200" />
-              <span>Đã lưu giá thành công! TV tại quầy đang cập nhật tức thì.</span>
+          <div className="mt-2 p-2.5 rounded-xl bg-emerald-700 text-white text-xs font-bold flex items-center justify-between shadow-md animate-fade-in border border-emerald-500">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-200 flex-shrink-0" />
+              <span>{savedNotificationText || 'Đã lưu thành công lên TV tại quầy!'}</span>
             </div>
           </div>
         )}
@@ -1072,28 +1111,35 @@ export const MobileAdmin: React.FC<MobileAdminProps> = ({
             
             {/* Cài đặt thông tin cửa hàng */}
             <div className="bg-white rounded-2xl border border-neutral-200 p-4 shadow-2xs space-y-3">
-              <h3 className="text-xs sm:text-sm font-black text-neutral-900 uppercase flex items-center gap-1.5 border-b border-neutral-100 pb-2">
-                <Store className="w-4 h-4 text-red-700" />
-                <span>Thông Tin Tiệm Vàng</span>
-              </h3>
+              <div className="flex items-center justify-between border-b border-neutral-100 pb-2">
+                <h3 className="text-xs sm:text-sm font-black text-neutral-900 uppercase flex items-center gap-1.5">
+                  <Store className="w-4 h-4 text-red-700" />
+                  <span>Thông Tin Tiệm Vàng</span>
+                </h3>
+                <span className="text-[10px] font-bold text-neutral-500">
+                  Hiển thị trên đầu bảng giá TV
+                </span>
+              </div>
 
               <div>
-                <label className="block text-xs font-bold text-neutral-700 mb-1">Tên Tiệm Vàng:</label>
+                <label className="block text-xs font-bold text-neutral-700 mb-1">Tên Tiệm Vàng: <span className="text-red-600">*</span></label>
                 <input
                   type="text"
                   value={localSettings.storeName}
-                  onChange={(e) => setLocalSettings({ ...localSettings, storeName: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-neutral-300 text-xs font-bold focus:border-red-700 focus:outline-hidden"
+                  onChange={(e) => updateSettingsField({ storeName: e.target.value })}
+                  placeholder="Ví dụ: TIỆM VÀNG KIM ĐỨC, VÀNG BẠC ĐỨC KỲ..."
+                  className="w-full px-3 py-2.5 rounded-xl border border-neutral-300 text-sm font-black text-red-950 focus:border-red-700 focus:outline-hidden bg-amber-50/40"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-neutral-700 mb-1">Khẩu Hiệu Banner:</label>
+                <label className="block text-xs font-bold text-neutral-700 mb-1">Khẩu Hiệu / Slogan Banner:</label>
                 <input
                   type="text"
                   value={localSettings.slogan}
-                  onChange={(e) => setLocalSettings({ ...localSettings, slogan: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-neutral-300 text-xs font-bold focus:border-red-700 focus:outline-hidden"
+                  onChange={(e) => updateSettingsField({ slogan: e.target.value })}
+                  placeholder="Ví dụ: CHỮ TÍN QUÝ HƠN VÀNG, UY TÍN TẠO NIỀM TIN..."
+                  className="w-full px-3 py-2 rounded-xl border border-neutral-300 text-xs font-bold text-amber-900 focus:border-red-700 focus:outline-hidden"
                 />
               </div>
 
@@ -1103,18 +1149,20 @@ export const MobileAdmin: React.FC<MobileAdminProps> = ({
                   <input
                     type="text"
                     value={localSettings.address}
-                    onChange={(e) => setLocalSettings({ ...localSettings, address: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-neutral-300 text-xs font-bold focus:border-red-700 focus:outline-hidden"
+                    onChange={(e) => updateSettingsField({ address: e.target.value })}
+                    placeholder="Địa chỉ quầy tiệm vàng..."
+                    className="w-full px-3 py-2 rounded-xl border border-neutral-300 text-xs font-medium focus:border-red-700 focus:outline-hidden"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-neutral-700 mb-1">Số Hotline:</label>
+                  <label className="block text-xs font-bold text-neutral-700 mb-1">Số Hotline / Điện Thoại:</label>
                   <input
                     type="text"
                     value={localSettings.phone}
-                    onChange={(e) => setLocalSettings({ ...localSettings, phone: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-neutral-300 text-xs font-bold focus:border-red-700 focus:outline-hidden"
+                    onChange={(e) => updateSettingsField({ phone: e.target.value })}
+                    placeholder="Số điện thoại liên hệ..."
+                    className="w-full px-3 py-2 rounded-xl border border-neutral-300 text-xs font-medium focus:border-red-700 focus:outline-hidden"
                   />
                 </div>
               </div>
@@ -1124,9 +1172,25 @@ export const MobileAdmin: React.FC<MobileAdminProps> = ({
                 <textarea
                   rows={2}
                   value={localSettings.marqueeNotice}
-                  onChange={(e) => setLocalSettings({ ...localSettings, marqueeNotice: e.target.value })}
+                  onChange={(e) => updateSettingsField({ marqueeNotice: e.target.value })}
+                  placeholder="Dòng thông báo khuyến mãi, chúc mừng chạy ở chân màn hình TV..."
                   className="w-full px-3 py-2 rounded-xl border border-neutral-300 text-xs font-medium focus:border-red-700 focus:outline-hidden"
                 />
+              </div>
+
+              {/* Nút lưu thông tin tiệm chuyên dụng ngay trong thẻ cài đặt */}
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={isSaving}
+                  className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-red-700 via-red-800 to-red-900 hover:from-red-800 hover:to-red-950 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg active:scale-98 transition-all cursor-pointer border border-amber-400"
+                >
+                  <Save className="w-4 h-4 text-amber-300" />
+                  <span>
+                    {isSaving ? 'ĐANG LƯU LÊN TV...' : `LƯU THÔNG TIN TIỆM "${(localSettings.storeName || 'TIỆM VÀNG').toUpperCase()}"`}
+                  </span>
+                </button>
               </div>
             </div>
 
@@ -1150,7 +1214,7 @@ export const MobileAdmin: React.FC<MobileAdminProps> = ({
                     value={localSettings.adminPin || '1234'}
                     onChange={(e) => {
                       const val = e.target.value.replace(/\D/g, '');
-                      setLocalSettings({ ...localSettings, adminPin: val });
+                      updateSettingsField({ adminPin: val });
                     }}
                     className="w-full px-3 py-2 rounded-xl border border-neutral-300 text-center font-mono text-base font-black tracking-widest text-red-800 focus:border-red-700 focus:outline-hidden bg-neutral-50"
                   />
@@ -1176,7 +1240,7 @@ export const MobileAdmin: React.FC<MobileAdminProps> = ({
                     type="button"
                     onClick={() => {
                       onChangeUnit(u.id);
-                      setLocalSettings({ ...localSettings, displayUnit: u.id });
+                      updateSettingsField({ displayUnit: u.id });
                     }}
                     className={`py-2 px-2 rounded-xl text-xs font-black text-center cursor-pointer transition-all ${
                       localSettings.displayUnit === u.id
@@ -1205,7 +1269,7 @@ export const MobileAdmin: React.FC<MobileAdminProps> = ({
               <div className="grid grid-cols-2 gap-2.5">
                 <button
                   type="button"
-                  onClick={() => setLocalSettings({ ...localSettings, layoutMode: 'single_col' })}
+                  onClick={() => updateSettingsField({ layoutMode: 'single_col' })}
                   className={`p-3 rounded-2xl text-left cursor-pointer transition-all border-2 ${
                     localSettings.layoutMode === 'single_col'
                       ? 'bg-red-800 text-white border-amber-400 shadow-md'
@@ -1223,7 +1287,7 @@ export const MobileAdmin: React.FC<MobileAdminProps> = ({
 
                 <button
                   type="button"
-                  onClick={() => setLocalSettings({ ...localSettings, layoutMode: 'two_col' })}
+                  onClick={() => updateSettingsField({ layoutMode: 'two_col' })}
                   className={`p-3 rounded-2xl text-left cursor-pointer transition-all border-2 ${
                     localSettings.layoutMode !== 'single_col'
                       ? 'bg-red-800 text-white border-amber-400 shadow-md'
@@ -1262,10 +1326,17 @@ export const MobileAdmin: React.FC<MobileAdminProps> = ({
           <button
             type="button"
             onClick={handleSave}
-            className="flex-1 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-red-700 via-red-800 to-red-900 hover:from-red-800 hover:to-red-950 text-white font-black text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg active:scale-98 transition-all cursor-pointer border border-amber-400"
+            disabled={isSaving}
+            className="flex-1 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-red-700 via-red-800 to-red-900 hover:from-red-800 hover:to-red-950 text-white font-black text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg active:scale-98 transition-all cursor-pointer border border-amber-400 disabled:opacity-70"
           >
             <Save className="w-5 h-5 text-amber-300" />
-            <span>LƯU GIÁ & CẬP NHẬT LÊN TV NGAY</span>
+            <span>
+              {isSaving
+                ? 'ĐANG LƯU & ĐỒNG BỘ LÊN TV...'
+                : activeTab === 'store'
+                  ? 'LƯU THÔNG TIN TIỆM & CẬP NHẬT TV'
+                  : 'LƯU GIÁ & CẬP NHẬT LÊN TV NGAY'}
+            </span>
           </button>
         </div>
       </footer>

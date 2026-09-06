@@ -111,8 +111,19 @@ export default function App() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  // Keep ref to avoid stale state in callbacks
+  // Keep refs to avoid stale state in async callbacks and race conditions
   const isUpdatingFromRemoteRef = useRef<boolean>(false);
+  const latestItemsRef = useRef<GoldItem[]>(items);
+  const latestSettingsRef = useRef<StoreSettings>(settings);
+
+  // Keep refs synchronized on state change
+  useEffect(() => {
+    latestItemsRef.current = items;
+  }, [items]);
+
+  useEffect(() => {
+    latestSettingsRef.current = settings;
+  }, [settings]);
 
   // Sync settings & items to Firebase Firestore, backend server and localStorage
   const persistState = useCallback(async (newItems: GoldItem[], newSettings: StoreSettings) => {
@@ -140,8 +151,10 @@ export default function App() {
       }).catch(() => {
         // Silently ignore if static hosting
       });
+      return success;
     } catch (e) {
       console.error('Error persisting state:', e);
+      return false;
     }
   }, []);
 
@@ -174,12 +187,15 @@ export default function App() {
             return item;
           });
 
+          latestItemsRef.current = updated;
+          const currentSettings = latestSettingsRef.current;
           const newSettings: StoreSettings = {
-            ...settings,
+            ...currentSettings,
             lastSyncedAt: data.timestamp || new Date().toLocaleTimeString('vi-VN'),
-            dataSourceName: data.source || settings.dataSourceName
+            dataSourceName: data.source || currentSettings.dataSourceName
           };
 
+          latestSettingsRef.current = newSettings;
           setSettings(newSettings);
           persistState(updated, newSettings);
           return updated;
@@ -192,7 +208,7 @@ export default function App() {
         setTimeout(() => setIsRefreshing(false), 600);
       }
     }
-  }, [settings, persistState]);
+  }, [persistState]);
 
   // Firebase Real-time Listener: Updates instantly when phone changes prices or settings!
   useEffect(() => {
@@ -211,15 +227,19 @@ export default function App() {
 
           if (isStale) {
             setItems(INITIAL_GOLD_ITEMS);
+            latestItemsRef.current = INITIAL_GOLD_ITEMS;
             const freshSettings: StoreSettings = {
               ...(cloudData.settings || settings),
               pricingMode: 'auto_market'
             };
+            latestSettingsRef.current = freshSettings;
             setSettings(freshSettings);
             saveStoreConfigToFirebase(INITIAL_GOLD_ITEMS, freshSettings, 'market_upgrade').catch(() => {});
           } else {
             setItems(cloudData.items);
+            latestItemsRef.current = cloudData.items;
             if (cloudData.settings) {
+              latestSettingsRef.current = cloudData.settings;
               setSettings(cloudData.settings);
               if (cloudData.settings.displayUnit) {
                 setUnit(cloudData.settings.displayUnit);
@@ -248,8 +268,10 @@ export default function App() {
         setIsFirebaseConnected(true);
         if (data.items && Array.isArray(data.items) && data.items.length > 0) {
           setItems(data.items);
+          latestItemsRef.current = data.items;
         }
         if (data.settings) {
+          latestSettingsRef.current = data.settings;
           setSettings(data.settings);
           if (data.settings.displayUnit) {
             setUnit(data.settings.displayUnit);
@@ -330,18 +352,34 @@ export default function App() {
     return () => document.removeEventListener('fullscreenchange', handleFsChange);
   }, []);
 
-  // Update Settings handler
-  const handleUpdateSettings = (newSettings: StoreSettings) => {
-    setSettings(newSettings);
-    setUnit(newSettings.displayUnit);
-    persistState(items, newSettings);
-  };
-
-  // Update Items handler
-  const handleUpdateItems = (newItems: GoldItem[]) => {
+  // Atomic Save Handler: Saves both Items and Settings simultaneously to eliminate race conditions
+  const handleSaveAll = useCallback(async (newItems: GoldItem[], newSettings: StoreSettings) => {
     setItems(newItems);
-    persistState(newItems, settings);
-  };
+    setSettings(newSettings);
+    latestItemsRef.current = newItems;
+    latestSettingsRef.current = newSettings;
+    if (newSettings.displayUnit) {
+      setUnit(newSettings.displayUnit);
+    }
+    return await persistState(newItems, newSettings);
+  }, [persistState]);
+
+  // Update Settings handler - uses latestItemsRef to prevent overwriting with stale items
+  const handleUpdateSettings = useCallback((newSettings: StoreSettings) => {
+    setSettings(newSettings);
+    latestSettingsRef.current = newSettings;
+    if (newSettings.displayUnit) {
+      setUnit(newSettings.displayUnit);
+    }
+    persistState(latestItemsRef.current, newSettings);
+  }, [persistState]);
+
+  // Update Items handler - uses latestSettingsRef to prevent overwriting settings with stale state
+  const handleUpdateItems = useCallback((newItems: GoldItem[]) => {
+    setItems(newItems);
+    latestItemsRef.current = newItems;
+    persistState(newItems, latestSettingsRef.current);
+  }, [persistState]);
 
   // Navigation handlers
   const handleOpenAdmin = () => {
@@ -418,6 +456,7 @@ export default function App() {
             onClose={() => setShowPinModal(false)}
             onSuccess={handleAdminAuthSuccess}
             correctPin={settings.adminPin || '1234'}
+            storeName={settings.storeName}
           />
         </>
       )}
@@ -436,6 +475,7 @@ export default function App() {
             }}
             onUpdateItems={handleUpdateItems}
             onUpdateSettings={handleUpdateSettings}
+            onSaveAll={handleSaveAll}
             onRefreshMarket={() => fetchMarketRates(true)}
             isRefreshing={isRefreshing}
             onOpenTV={handleSwitchToTV}

@@ -311,7 +311,14 @@ export const CustomerBoard: React.FC<CustomerBoardProps> = ({
                 </span>
               </div>
               
-              {/* Dòng 2: Địa chỉ, Số hotline và huy hiệu */}
+              {/* Dòng 2: Slogan hiển thị rõ ràng */}
+              {settings.slogan && (
+                <div className="lg:hidden text-[11px] sm:text-xs font-serif font-bold text-amber-700 uppercase tracking-wide">
+                  ✦ {settings.slogan}
+                </div>
+              )}
+
+              {/* Dòng 3: Địa chỉ, Số hotline và huy hiệu */}
               <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs sm:text-sm text-neutral-700 font-bold mt-0.5">
                 <span className="flex items-center gap-1 text-red-950 whitespace-nowrap">
                   <MapPin className="w-3.5 h-3.5 text-red-700 flex-shrink-0" />
@@ -330,14 +337,14 @@ export const CustomerBoard: React.FC<CustomerBoardProps> = ({
             </div>
           </div>
 
-          {/* Center: Store Motto (Ẩn khi màn hình chưa cực rộng để nhường trọn không gian cho tên hiệu tiệm vàng) */}
-          <div className="hidden 2xl:flex flex-1 items-center justify-center px-3">
-            <div className="inline-flex items-center gap-2 sm:gap-3 px-4 sm:px-6 py-1.5 sm:py-2 rounded-xl bg-gradient-to-r from-red-950 via-[#B91C1C] to-red-950 text-amber-300 border-2 border-amber-400 shadow-md">
-              <span className="text-amber-400 font-bold text-sm sm:text-base">✦</span>
-              <span className="font-serif font-black text-sm sm:text-base lg:text-lg uppercase tracking-widest text-amber-200 drop-shadow-sm whitespace-nowrap">
+          {/* Center: Store Motto (Hiện từ màn hình laptop và TV trở lên) */}
+          <div className="hidden lg:flex flex-1 items-center justify-center px-2 sm:px-4 max-w-xl">
+            <div className="inline-flex items-center gap-2 sm:gap-3 px-3 sm:px-5 py-1 sm:py-1.5 rounded-xl bg-gradient-to-r from-red-950 via-[#B91C1C] to-red-950 text-amber-300 border-2 border-amber-400 shadow-md">
+              <span className="text-amber-400 font-bold text-xs sm:text-sm">✦</span>
+              <span className="font-serif font-black text-xs sm:text-sm lg:text-base uppercase tracking-widest text-amber-200 drop-shadow-sm whitespace-nowrap">
                 {settings.slogan || "CHỮ TÍN QUÝ HƠN VÀNG"}
               </span>
-              <span className="text-amber-400 font-bold text-sm sm:text-base">✦</span>
+              <span className="text-amber-400 font-bold text-xs sm:text-sm">✦</span>
             </div>
           </div>
 
@@ -421,7 +428,10 @@ export const CustomerBoard: React.FC<CustomerBoardProps> = ({
 
         <div className="overflow-hidden whitespace-nowrap w-full">
           <div className="inline-block animate-marquee text-xs sm:text-sm font-semibold text-neutral-800 tracking-wide">
-            {`TIỆM VÀNG ĐỨC KỲ KÍNH CHÀO QUÝ KHÁCH • ĐỊA CHỈ: ${storeAddress} • ĐIỆN THOẠI: ${storePhone} • BẢNG GIÁ ĐỒNG BỘ TRỰC TIẾP THEO THỜI GIAN THỰC TỪ SJC, PNJ, DOJI, AAA • CAM KẾT ĐÚNG TUỔI VÀNG 100%, ĐỦ TRỌNG LƯỢNG, BẢO HÀNH LÀM SÁNG TRỌN ĐỜI • THU MUA VÀ THU ĐỔI VÀNG CŨ GIÁ TỐT NHẤT.`}
+            {(settings.marqueeNotice && settings.marqueeNotice.trim())
+              ? settings.marqueeNotice
+              : `${storeName} KÍNH CHÀO QUÝ KHÁCH • ĐỊA CHỈ: ${storeAddress} • ĐIỆN THOẠI: ${storePhone} • BẢNG GIÁ ĐỒNG BỘ TRỰC TIẾP THEO THỜI GIAN THỰC TỪ SJC, PNJ, DOJI, AAA • CAM KẾT ĐÚNG TUỔI VÀNG 100%, ĐỦ TRỌNG LƯỢNG, BẢO HÀNH LÀM SÁNG TRỌN ĐỜI • THU MUA VÀ THU ĐỔI VÀNG CŨ GIÁ TỐT NHẤT.`
+            }
             <span className="mx-6 text-amber-500">★ ★ ★</span>
             <span>Hotline: {storePhone}</span>
             <span className="mx-6 text-amber-500">★ ★ ★</span>
