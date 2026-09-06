@@ -1,0 +1,62 @@
+{
+  "entities": {
+    "StoreConfig": {
+      "title": "StoreConfig",
+      "description": "Store configuration, gold items list, and owner display settings",
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "description": "List of gold items"
+        },
+        "settings": {
+          "type": "object",
+          "description": "Store display and contact settings"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Last update ISO timestamp"
+        },
+        "updatedDevice": {
+          "type": "string",
+          "description": "Device that updated the config"
+        }
+      },
+      "required": ["items", "settings", "updatedAt"]
+    },
+    "MarketRate": {
+      "title": "MarketRate",
+      "description": "Public gold market rates cache",
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "description": "Success flag"
+        },
+        "source": {
+          "type": "string",
+          "description": "Source name of market rates"
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "Timestamp string of the rates"
+        },
+        "rates": {
+          "type": "array",
+          "description": "Array of gold rate items"
+        }
+      },
+      "required": ["success", "source", "timestamp", "rates"]
+    }
+  },
+  "firestore": {
+    "/store_configs/{configId}": {
+      "schema": "StoreConfig",
+      "description": "Store price and settings configurations"
+    },
+    "/market_rates/{rateId}": {
+      "schema": "MarketRate",
+      "description": "Aggregated real-time market gold rates"
+    }
+  }
+}

@@ -9,16 +9,17 @@ import {
   Unsubscribe 
 } from 'firebase/firestore';
 import { GoldItem, StoreSettings, PublicRatesResponse } from './types';
+import rawConfig from '../firebase-applet-config.json';
 
-// Firebase configuration from environment or fallback to provisioned values
+// Firebase configuration from firebase-applet-config.json with fallback values
 export const firebaseConfig = {
-  projectId: "gen-lang-client-0835625292",
-  appId: "1:64222780158:web:d5546ae7177680e1a123af",
-  apiKey: "AIzaSyC2sxFHtoDqoQvnKoTICHAbpJuUbUXZ8TU",
-  authDomain: "gen-lang-client-0835625292.firebaseapp.com",
-  firestoreDatabaseId: "ai-studio-giavang-cd69dab1-4e28-4978-830d-5a692537f079",
-  storageBucket: "gen-lang-client-0835625292.firebasestorage.app",
-  messagingSenderId: "64222780158"
+  projectId: rawConfig.projectId || "gen-lang-client-0835625292",
+  appId: rawConfig.appId || "1:64222780158:web:d5546ae7177680e1a123af",
+  apiKey: rawConfig.apiKey || "AIzaSyC2sxFHtoDqoQvnKoTICHAbpJuUbUXZ8TU",
+  authDomain: rawConfig.authDomain || "gen-lang-client-0835625292.firebaseapp.com",
+  firestoreDatabaseId: rawConfig.firestoreDatabaseId || "ai-studio-giavang-cd69dab1-4e28-4978-830d-5a692537f079",
+  storageBucket: rawConfig.storageBucket || "gen-lang-client-0835625292.firebasestorage.app",
+  messagingSenderId: rawConfig.messagingSenderId || "64222780158"
 };
 
 // Initialize Firebase App

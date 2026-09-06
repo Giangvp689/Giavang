@@ -4,12 +4,12 @@
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Header } from './components/Header';
 import { CustomerBoard } from './components/CustomerBoard';
-import { OwnerAdmin } from './components/OwnerAdmin';
-import { GoldCalculator } from './components/GoldCalculator';
+import { MobileAdmin } from './components/MobileAdmin';
+import { AdminLogin } from './components/AdminLogin';
 import { PinModal } from './components/PinModal';
-import { GoldItem, StoreSettings, UnitType, PublicRatesResponse } from './types';
+import { GoldCalculator } from './components/GoldCalculator';
+import { GoldItem, StoreSettings, UnitType } from './types';
 import { INITIAL_GOLD_ITEMS, INITIAL_STORE_SETTINGS } from './data/defaultData';
 import { 
   subscribeToStoreConfig, 
@@ -18,10 +18,26 @@ import {
   subscribeToMarketRates 
 } from './firebase';
 import { getLiveMarketRates } from './utils/marketRatesService';
-import { Tv, Sparkles, X, Radio, Clock, Wifi } from 'lucide-react';
 
 const LOCAL_STORAGE_ITEMS_KEY = 'tiem_vang_ducky_items_v1';
 const LOCAL_STORAGE_SETTINGS_KEY = 'tiem_vang_ducky_settings_v1';
+const LOCAL_STORAGE_AUTH_KEY = 'tiem_vang_admin_authenticated';
+
+// Determine initial tab from URL: ?mode=admin or /admin or #admin
+function getInitialTab(): 'board' | 'admin' | 'calculator' {
+  if (typeof window !== 'undefined') {
+    const search = window.location.search;
+    const hash = window.location.hash;
+    const path = window.location.pathname;
+    if (search.includes('mode=admin') || search.includes('admin=1') || hash === '#admin' || path.startsWith('/admin')) {
+      return 'admin';
+    }
+    if (search.includes('mode=calc') || hash === '#calc') {
+      return 'calculator';
+    }
+  }
+  return 'board';
+}
 
 export default function App() {
   // Initialize state with fallback to localStorage or built-in defaults
@@ -40,7 +56,6 @@ export default function App() {
       const saved = localStorage.getItem(LOCAL_STORAGE_SETTINGS_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        // Overwrite old dummy address/phone if present
         if (!parsed.address || parsed.address.includes('Số 88 Phố Vàng Bạc')) {
           parsed.address = INITIAL_STORE_SETTINGS.address;
         }
@@ -55,24 +70,57 @@ export default function App() {
     return INITIAL_STORE_SETTINGS;
   });
 
-  const [activeTab, setActiveTab] = useState<'board' | 'calculator' | 'admin'>('board');
+  const [activeTab, setActiveTab] = useState<'board' | 'admin' | 'calculator'>(getInitialTab);
   const [unit, setUnit] = useState<UnitType>(settings.displayUnit || 'chi');
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
-  const [calcSelectedItem, setCalcSelectedItem] = useState<GoldItem | null>(null);
   const [isFirebaseConnected, setIsFirebaseConnected] = useState<boolean>(false);
   const [lastSyncTime, setLastSyncTime] = useState<string>('');
+
+  // Admin authentication state (PIN 1234)
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(LOCAL_STORAGE_AUTH_KEY) === 'true';
+    } catch (e) {
+      return false;
+    }
+  });
+  const [showPinModal, setShowPinModal] = useState<boolean>(false);
+
+  // Sync URL query parameters (?mode=tv vs ?mode=admin)
+  const updateUrlMode = useCallback((mode: 'tv' | 'admin' | 'calc') => {
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      if (mode === 'admin') {
+        url.searchParams.set('mode', 'admin');
+      } else if (mode === 'calc') {
+        url.searchParams.set('mode', 'calc');
+      } else {
+        url.searchParams.set('mode', 'tv');
+      }
+      window.history.pushState({}, '', url.toString());
+    }
+  }, []);
+
+  // Listen for browser Back/Forward navigation
+  useEffect(() => {
+    const handlePopState = () => {
+      setActiveTab(getInitialTab());
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   // Keep ref to avoid stale state in callbacks
   const isUpdatingFromRemoteRef = useRef<boolean>(false);
 
-  // Sync settings & items to Firebase, backend server and localStorage
+  // Sync settings & items to Firebase Firestore, backend server and localStorage
   const persistState = useCallback(async (newItems: GoldItem[], newSettings: StoreSettings) => {
     try {
       localStorage.setItem(LOCAL_STORAGE_ITEMS_KEY, JSON.stringify(newItems));
       localStorage.setItem(LOCAL_STORAGE_SETTINGS_KEY, JSON.stringify(newSettings));
 
-      // 1. Primary: Save directly to Firebase Firestore for real-time sync across TV & Mobile
+      // 1. Primary: Save directly to Firebase Firestore for instant live sync across TV & Mobile
       const isMobileDevice = typeof window !== 'undefined' && window.innerWidth < 768;
       const success = await saveStoreConfigToFirebase(
         newItems, 
@@ -90,7 +138,7 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ items: newItems, settings: newSettings })
       }).catch(() => {
-        // Silently ignore if static hosting like Vercel
+        // Silently ignore if static hosting
       });
     } catch (e) {
       console.error('Error persisting state:', e);
@@ -101,12 +149,10 @@ export default function App() {
   const fetchMarketRates = useCallback(async (showIndicator = true) => {
     if (showIndicator) setIsRefreshing(true);
     try {
-      // Use robust multi-source service that works on both local container and Vercel/GitHub
       const data = await getLiveMarketRates();
       if (data && data.rates && data.rates.length > 0) {
         setItems(prevItems => {
           const updated = prevItems.map(item => {
-            // Find matching market rate by id or exact match
             const match = data.rates.find(r => 
               r.id === item.id || 
               (r.brand === item.brand && r.name.toLowerCase() === item.name.toLowerCase())
@@ -148,7 +194,7 @@ export default function App() {
     }
   }, [settings, persistState]);
 
-  // Firebase Real-time Listener: Updates instantly when any device (e.g. mobile phone) changes prices or settings!
+  // Firebase Real-time Listener: Updates instantly when phone changes prices or settings!
   useEffect(() => {
     let unsubscribeStore: (() => void) | undefined;
     let unsubscribeRates: (() => void) | undefined;
@@ -169,7 +215,6 @@ export default function App() {
           setIsFirebaseConnected(true);
           isUpdatingFromRemoteRef.current = false;
         } else {
-          // Initialize empty Firestore with current items & settings
           saveStoreConfigToFirebase(items, settings, 'initial_seed')
             .then(() => setIsFirebaseConnected(true))
             .catch(() => {});
@@ -178,7 +223,6 @@ export default function App() {
         console.warn('Firebase initial load fallback:', err);
       }
 
-      // Also trigger initial live market rates check
       fetchMarketRates(false);
     }
 
@@ -204,7 +248,7 @@ export default function App() {
       }
     );
 
-    // 3. Real-time subscription to market rates synced by any client
+    // 3. Real-time subscription to market rates
     unsubscribeRates = subscribeToMarketRates((ratesData) => {
       if (ratesData && ratesData.rates && ratesData.rates.length > 0) {
         setItems(prevItems => {
@@ -235,7 +279,7 @@ export default function App() {
     };
   }, []);
 
-  // Periodic auto-sync based on store settings (e.g. every 15 minutes)
+  // Periodic auto-sync based on store settings
   useEffect(() => {
     const minutes = Math.max(2, settings.autoSyncIntervalMinutes || 15);
     const interval = setInterval(() => {
@@ -245,7 +289,7 @@ export default function App() {
     return () => clearInterval(interval);
   }, [settings.autoSyncIntervalMinutes, fetchMarketRates]);
 
-  // Fullscreen toggle
+  // Fullscreen toggle for TV mode
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen().then(() => {
@@ -285,10 +329,42 @@ export default function App() {
     persistState(newItems, settings);
   };
 
-  // Switch to calculator with specific item
-  const handleOpenCalculatorWithItem = (item: GoldItem) => {
-    setCalcSelectedItem(item);
-    setActiveTab('calculator');
+  // Navigation handlers
+  const handleOpenAdmin = () => {
+    if (isAdminAuthenticated) {
+      setActiveTab('admin');
+      updateUrlMode('admin');
+    } else {
+      setShowPinModal(true);
+    }
+  };
+
+  const handleAdminAuthSuccess = () => {
+    setIsAdminAuthenticated(true);
+    try {
+      localStorage.setItem(LOCAL_STORAGE_AUTH_KEY, 'true');
+    } catch (e) {
+      console.error(e);
+    }
+    setShowPinModal(false);
+    setActiveTab('admin');
+    updateUrlMode('admin');
+  };
+
+  const handleAdminLock = () => {
+    setIsAdminAuthenticated(false);
+    try {
+      localStorage.removeItem(LOCAL_STORAGE_AUTH_KEY);
+    } catch (e) {
+      console.error(e);
+    }
+    setActiveTab('board');
+    updateUrlMode('tv');
+  };
+
+  const handleSwitchToTV = () => {
+    setActiveTab('board');
+    updateUrlMode('tv');
   };
 
   return (
@@ -296,96 +372,100 @@ export default function App() {
       isFullscreen ? 'p-0 overflow-hidden' : ''
     }`}>
 
-      {activeTab === 'board' ? (
-        /* Full TV Board View (fits 100vh of TV screen without vertical overflow) */
-        <CustomerBoard
-          items={items}
-          settings={settings}
-          unit={unit}
-          onChangeUnit={(u) => {
-            setUnit(u);
-            handleUpdateSettings({ ...settings, displayUnit: u });
-          }}
-          onUpdateItems={handleUpdateItems}
-          onUpdateSettings={handleUpdateSettings}
-          isFullscreen={isFullscreen}
-          onToggleFullscreen={toggleFullscreen}
-          onOpenAdmin={() => {
-            setIsFullscreen(false);
-            setActiveTab('admin');
-          }}
-          onOpenCalculator={() => {
-            setIsFullscreen(false);
-            setActiveTab('calculator');
-          }}
-          onRefreshMarket={() => fetchMarketRates(true)}
-          isRefreshing={isRefreshing}
-          isFirebaseConnected={isFirebaseConnected}
-          lastSyncedTime={lastSyncTime}
-        />
-      ) : (
-        /* Standard Pages (Calculator, Owner Admin Settings) with clean light header */
+      {/* CHẾ ĐỘ 1: BẢNG GIÁ TV CHIẾU CHO KHÁCH XEM (URL: ?mode=tv hoặc mặc định) */}
+      {activeTab === 'board' && (
         <>
-          <Header
+          <CustomerBoard
+            items={items}
             settings={settings}
-            activeTab={activeTab}
-            onSelectTab={setActiveTab}
             unit={unit}
             onChangeUnit={(u) => {
               setUnit(u);
               handleUpdateSettings({ ...settings, displayUnit: u });
             }}
-            onRefreshMarket={() => fetchMarketRates(true)}
-            isRefreshing={isRefreshing}
+            onUpdateItems={handleUpdateItems}
+            onUpdateSettings={handleUpdateSettings}
             isFullscreen={isFullscreen}
             onToggleFullscreen={toggleFullscreen}
+            onOpenAdmin={handleOpenAdmin}
+            onOpenCalculator={() => {
+              setActiveTab('calculator');
+              updateUrlMode('calc');
+            }}
+            onRefreshMarket={() => fetchMarketRates(true)}
+            isRefreshing={isRefreshing}
+            isFirebaseConnected={isFirebaseConnected}
+            lastSyncedTime={lastSyncTime}
           />
 
-          <main className="flex-1 w-full max-w-7xl mx-auto p-4 sm:p-6">
-            {activeTab === 'calculator' && (
-              <GoldCalculator
-                items={items}
-                settings={settings}
-                selectedItemInitial={calcSelectedItem}
-              />
-            )}
-
-            {activeTab === 'admin' && (
-              <OwnerAdmin
-                items={items}
-                settings={settings}
-                onUpdateItems={handleUpdateItems}
-                onUpdateSettings={handleUpdateSettings}
-                onRefreshMarket={() => fetchMarketRates(true)}
-                isRefreshing={isRefreshing}
-              />
-            )}
-          </main>
-
-          <footer className="bg-white border-t border-neutral-200 py-3 text-xs text-neutral-600">
-            <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <span className="font-extrabold text-red-700 font-serif uppercase">{settings.storeName}</span>
-                <span>• Hệ thống Bảng Giá Vàng Điện Tử Chiếu TV Cho Khách</span>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <span className="flex items-center gap-1 text-emerald-700 font-semibold">
-                  <Radio className="w-3.5 h-3.5 text-emerald-600" />
-                  API Thời Gian Thực: SJC • PNJ • DOJI • AAA
-                </span>
-                <span>•</span>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('board')}
-                  className="text-red-700 hover:underline font-bold cursor-pointer"
-                >
-                  Xem Bảng Giá TV
-                </button>
-              </div>
-            </div>
-          </footer>
+          {/* Modal Nhập PIN 1234 khi bấm Quản lý từ Bảng TV */}
+          <PinModal
+            isOpen={showPinModal}
+            onClose={() => setShowPinModal(false)}
+            onSuccess={handleAdminAuthSuccess}
+            correctPin={settings.adminPin || '1234'}
+          />
         </>
+      )}
+
+      {/* CHẾ ĐỘ 2: TRANG QUẢN TRỊ CHỦ TIỆM ĐIỆN THOẠI (URL: ?mode=admin) */}
+      {activeTab === 'admin' && (
+        isAdminAuthenticated ? (
+          /* Đã đăng nhập: Vào thẳng Giao diện Quản Lý Điện Thoại (Không bị bóp hình) */
+          <MobileAdmin
+            items={items}
+            settings={settings}
+            unit={unit}
+            onChangeUnit={(u) => {
+              setUnit(u);
+              handleUpdateSettings({ ...settings, displayUnit: u });
+            }}
+            onUpdateItems={handleUpdateItems}
+            onUpdateSettings={handleUpdateSettings}
+            onRefreshMarket={() => fetchMarketRates(true)}
+            isRefreshing={isRefreshing}
+            onOpenTV={handleSwitchToTV}
+            onLockAdmin={handleAdminLock}
+            isFirebaseConnected={isFirebaseConnected}
+            lastSyncedTime={lastSyncTime}
+          />
+        ) : (
+          /* Chưa đăng nhập: Hiện ngay Màn hình Đăng Nhập PIN 1234 to rõ */
+          <AdminLogin
+            onSuccess={handleAdminAuthSuccess}
+            onBackToTV={handleSwitchToTV}
+            correctPin={settings.adminPin || '1234'}
+            storeName={settings.storeName}
+          />
+        )
+      )}
+
+      {/* CHẾ ĐỘ 3: MÁY TÍNH TIỀN VÀNG */}
+      {activeTab === 'calculator' && (
+        <div className="min-h-screen bg-[#FAF7F0] p-4 flex flex-col">
+          <div className="max-w-2xl mx-auto w-full mb-3 flex items-center justify-between">
+            <button
+              type="button"
+              onClick={handleSwitchToTV}
+              className="px-3 py-1.5 rounded-xl bg-red-800 text-white font-bold text-xs cursor-pointer shadow-xs"
+            >
+              ← Quay Lại Bảng TV
+            </button>
+            <button
+              type="button"
+              onClick={handleOpenAdmin}
+              className="px-3 py-1.5 rounded-xl bg-neutral-900 text-white font-bold text-xs cursor-pointer shadow-xs"
+            >
+              Vào Quản Trị (1234)
+            </button>
+          </div>
+          <div className="max-w-2xl mx-auto w-full bg-white rounded-3xl p-4 shadow-sm border border-neutral-200">
+            <GoldCalculator
+              items={items}
+              settings={settings}
+            />
+          </div>
+        </div>
       )}
 
     </div>
