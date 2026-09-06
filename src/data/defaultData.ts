@@ -225,7 +225,7 @@ export const INITIAL_GOLD_ITEMS: GoldItem[] = [
     note: "Nhẫn tròn trơn chuẩn 999.9 AAA"
   },
 
-  // 5. Nữ Trang Tiệm Vàng Đức Kỳ
+  // 5. Nữ Trang Tiệm Vàng
   {
     id: "tiem-nu-trang-24k",
     name: "Vàng nữ trang 24K (99.9%)",
@@ -276,7 +276,7 @@ export const INITIAL_GOLD_ITEMS: GoldItem[] = [
   },
   {
     id: "tiem-nu-trang-18k",
-    name: "Vàng tây 18K (75.0% Đức Kỳ)",
+    name: "Vàng tây 18K (75.0%)",
     purity: "75.00%",
     brand: "TIỆM",
     category: "jewelry",
@@ -300,7 +300,7 @@ export const INITIAL_GOLD_ITEMS: GoldItem[] = [
   },
   {
     id: "tiem-nu-trang-14k",
-    name: "Vàng tây 14K (58.5% Đức Kỳ)",
+    name: "Vàng tây 14K (58.5%)",
     purity: "58.50%",
     brand: "TIỆM",
     category: "jewelry",
@@ -324,7 +324,7 @@ export const INITIAL_GOLD_ITEMS: GoldItem[] = [
   },
   {
     id: "tiem-nu-trang-10k",
-    name: "Vàng tây 10K (41.6% Đức Kỳ)",
+    name: "Vàng tây 10K (41.6%)",
     purity: "41.60%",
     brand: "TIỆM",
     category: "jewelry",
@@ -349,11 +349,11 @@ export const INITIAL_GOLD_ITEMS: GoldItem[] = [
 ];
 
 export const INITIAL_STORE_SETTINGS: StoreSettings = {
-  storeName: "TIỆM VÀNG ĐỨC KỲ",
+  storeName: "TIỆM VÀNG THỊNH VƯỢNG",
   slogan: "CHỮ TÍN QUÝ HƠN VÀNG",
   phone: "0985061955",
   address: "2C Lê Quý Đôn - Sơn Tây - Hà Nội",
-  marqueeNotice: "TIỆM VÀNG ĐỨC KỲ KÍNH CHÀO QUÝ KHÁCH • ĐỊA CHỈ: 2C LÊ QUÝ ĐÔN - SƠN TÂY - HÀ NỘI • ĐT: 0985061955 • BẢNG GIÁ ĐỒNG BỘ TRỰC TIẾP TỪ THỊ TRƯỜNG TOÀN QUỐC (SJC, PNJ, DOJI, AAA) • CAM KẾT VÀNG ĐÚNG TUỔI 100% • THU MUA VÀ THU ĐỔI VÀNG CŨ GIÁ TỐT NHẤT.",
+  marqueeNotice: "CHÀO MỪNG QUÝ KHÁCH • BẢNG GIÁ ĐỒNG BỘ TRỰC TIẾP TỪ THỊ TRƯỜNG TOÀN QUỐC (SJC, PNJ, DOJI, AAA) • CAM KẾT VÀNG ĐÚNG TUỔI 100%, ĐỦ TRỌNG LƯỢNG • THU MUA VÀ THU ĐỔI VÀNG CŨ GIÁ TỐT NHẤT.",
   displayUnit: "chi",
   
   // Định giá: 'auto_market' (Tự động chuẩn 100% thị trường SJC) | 'amount_delta' | 'percent'
@@ -376,5 +376,7 @@ export const INITIAL_STORE_SETTINGS: StoreSettings = {
   showSpreadColumn: true,
   tvFontSize: "large",
   layoutMode: "two_col",
-  priceDisplayFormat: "compact"
+  priceDisplayFormat: "compact",
+  tvScalePercent: 100,
+  tvSafeMargin: true
 };

@@ -122,7 +122,7 @@ export const GoldCalculator: React.FC<GoldCalculatorProps> = ({
   // Copy quote text for customer Zalo/SMS
   const handleCopyQuote = () => {
     const dateStr = new Date().toLocaleString('vi-VN');
-    let text = `✨ BÁO GIÁ VÀNG - ${settings.storeName || 'TIỆM VÀNG ĐỨC KỲ'} ✨\n`;
+    let text = `✨ BÁO GIÁ VÀNG - ${settings.storeName || 'TIỆM VÀNG'} ✨\n`;
     text += `⏰ Thời gian: ${dateStr}\n`;
     if (customerName) text += `👤 Khách hàng: ${customerName} ${customerPhone ? `(${customerPhone})` : ''}\n`;
     text += `------------------------------\n`;
@@ -164,7 +164,7 @@ export const GoldCalculator: React.FC<GoldCalculatorProps> = ({
             </h2>
           </div>
           <p className="text-xs text-neutral-600 mt-1">
-            Tính tiền vàng theo số Chỉ/Phân/Gam, cộng tiền công chế tác, trừ tiền vàng cũ thu đổi tại quầy Tiệm Vàng Đức Kỳ.
+            Tính tiền vàng theo số Chỉ/Phân/Gam, cộng tiền công chế tác, trừ tiền vàng cũ thu đổi tại quầy {settings.storeName || 'Tiệm Vàng'}.
           </p>
         </div>
 
@@ -435,7 +435,7 @@ export const GoldCalculator: React.FC<GoldCalculatorProps> = ({
             </div>
 
             <p className="text-[11px] text-neutral-500 text-center leading-relaxed">
-              Giá niêm yết chính thức tại Tiệm Vàng Đức Kỳ. Cân điện tử chuẩn quốc gia.
+              Giá niêm yết chính thức tại {settings.storeName || 'Tiệm Vàng'}. Cân điện tử chuẩn quốc gia.
             </p>
 
           </div>

@@ -232,7 +232,7 @@ export const OwnerAdmin: React.FC<OwnerAdminProps> = ({
           <div>
             <div className="flex items-center gap-2">
               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-red-800 text-white uppercase tracking-wider">
-                CHỦ TIỆM ĐỨC KỲ
+                CHỦ TIỆM VÀNG
               </span>
               <h2 className="text-base sm:text-lg font-black text-red-800 font-serif">
                 Trung Tâm Quản Trị & Cài Đặt Toàn Diện
@@ -855,7 +855,7 @@ export const OwnerAdmin: React.FC<OwnerAdminProps> = ({
                 Cài Đặt Màn Hình TV & Thông Tin Cửa Hàng
               </h3>
               <p className="text-xs text-neutral-600">
-                Tùy chỉnh bố cục hiển thị TV, đơn vị tính, định dạng số và thông tin liên hệ tiệm vàng Đức Kỳ.
+                Tùy chỉnh bố cục hiển thị TV, đơn vị tính, định dạng số và thông tin liên hệ tiệm vàng.
               </p>
             </div>
 
@@ -1052,7 +1052,7 @@ export const OwnerAdmin: React.FC<OwnerAdminProps> = ({
 
             <form onSubmit={handleAddNewItem} className="p-5 space-y-3.5 text-xs">
               <div>
-                <label className="font-bold text-neutral-700 block mb-1">Tên loại vàng (Ví dụ: Vàng Ta 9999 Tiệm Đức Kỳ):</label>
+                <label className="font-bold text-neutral-700 block mb-1">Tên loại vàng (Ví dụ: Vàng Ta 9999 Tiệm):</label>
                 <input
                   type="text"
                   required

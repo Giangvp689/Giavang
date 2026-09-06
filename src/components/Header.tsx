@@ -54,6 +54,16 @@ export const Header: React.FC<HeaderProps> = ({
     year: 'numeric'
   });
 
+  const getInitials = (name: string) => {
+    if (!name) return 'TV';
+    const clean = name.replace(/^(tiệm vàng|vàng bạc|dntn|cty|doanh nghiệp)\s+/i, '').trim();
+    const words = clean.split(/\s+/).filter(Boolean);
+    if (words.length >= 2) {
+      return (words[0][0] + words[words.length - 1][0]).toUpperCase();
+    }
+    return clean.slice(0, 2).toUpperCase() || 'TV';
+  };
+
   return (
     <header className="w-full bg-white border-b border-neutral-200 shadow-xs sticky top-0 z-30">
       {/* Top Banner: Clean White with Red & Gold Accents */}
@@ -64,23 +74,23 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 p-0.5 shadow-xs flex-shrink-0">
               <div className="w-full h-full bg-red-800 rounded-[10px] flex items-center justify-center text-amber-300 font-serif font-black text-base shadow-inner">
-                ĐK
+                {getInitials(settings.storeName || "TIỆM VÀNG")}
               </div>
             </div>
 
             <div className="flex-shrink-0">
               <div className="flex items-center gap-2">
                 <h1 className="text-xl sm:text-2xl font-black tracking-wider text-red-800 font-serif uppercase whitespace-nowrap">
-                  {settings.storeName || "TIỆM VÀNG ĐỨC KỲ"}
+                  {settings.storeName || "TIỆM VÀNG"}
                 </h1>
                 <span className="hidden sm:inline-block text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold border border-emerald-200 whitespace-nowrap">
                   Thời gian thực SJC • PNJ • DOJI
                 </span>
               </div>
               <div className="flex flex-wrap items-center gap-2 text-xs text-neutral-600 font-semibold hidden sm:flex">
-                <span>📍 {settings.address || "2C Lê Quý Đôn - Sơn Tây - Hà Nội"}</span>
+                <span>📍 {settings.address || "Quầy giao dịch"}</span>
                 <span>•</span>
-                <span>📞 Hotline: {settings.phone || "0985061955"}</span>
+                <span>📞 Hotline: {settings.phone || "Liên hệ"}</span>
               </div>
             </div>
           </div>

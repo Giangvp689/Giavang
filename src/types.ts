@@ -79,6 +79,8 @@ export interface StoreSettings {
   tvFontSize?: 'normal' | 'large' | 'extralarge';
   layoutMode?: 'two_col' | 'single_col';
   priceDisplayFormat?: 'compact' | 'full';
+  tvScalePercent?: number; // 90 | 95 | 100
+  tvSafeMargin?: boolean; // Khớp khung viền an toàn cho TV (chống tràn mép màn hình 40" - 65")
 }
 
 export interface PublicRatesResponse {

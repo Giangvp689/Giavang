@@ -214,7 +214,7 @@ export async function getLiveMarketRates(): Promise<PublicRatesResponse | null> 
               changePercent: 0.17
             },
 
-            // 5. Nữ Trang Tiệm Vàng Đức Kỳ
+            // 5. Nữ Trang Tiệm Vàng
             {
               id: 'tiem-nu-trang-24k',
               name: 'Vàng nữ trang 24K (99.9%)',
@@ -245,7 +245,7 @@ export async function getLiveMarketRates(): Promise<PublicRatesResponse | null> 
             },
             {
               id: 'tiem-nu-trang-18k',
-              name: 'Vàng tây 18K (75.0% Đức Kỳ)',
+              name: 'Vàng tây 18K (75.0%)',
               purity: '75.00%',
               brand: 'TIỆM',
               category: 'jewelry',
@@ -259,7 +259,7 @@ export async function getLiveMarketRates(): Promise<PublicRatesResponse | null> 
             },
             {
               id: 'tiem-nu-trang-14k',
-              name: 'Vàng tây 14K (58.5% Đức Kỳ)',
+              name: 'Vàng tây 14K (58.5%)',
               purity: '58.50%',
               brand: 'TIỆM',
               category: 'jewelry',
@@ -273,7 +273,7 @@ export async function getLiveMarketRates(): Promise<PublicRatesResponse | null> 
             },
             {
               id: 'tiem-nu-trang-10k',
-              name: 'Vàng tây 10K (41.6% Đức Kỳ)',
+              name: 'Vàng tây 10K (41.6%)',
               purity: '41.60%',
               brand: 'TIỆM',
               category: 'jewelry',

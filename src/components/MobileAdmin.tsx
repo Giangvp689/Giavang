@@ -143,21 +143,24 @@ export const MobileAdmin: React.FC<MobileAdminProps> = ({
   // Save all to Cloud Firestore & TV immediately without race conditions
   const handleSave = async () => {
     setIsSaving(true);
-    isSettingsDirtyRef.current = false;
+    const settingsToSave = { ...localSettings };
+    const itemsToSave = [...localItems];
     try {
       if (onSaveAll) {
-        await onSaveAll(localItems, localSettings);
+        await onSaveAll(itemsToSave, settingsToSave);
       } else {
-        onUpdateSettings(localSettings);
-        onUpdateItems(localItems);
+        onUpdateSettings(settingsToSave);
+        onUpdateItems(itemsToSave);
       }
+      isSettingsDirtyRef.current = false;
+      setLocalSettings(settingsToSave);
     } catch (err) {
       console.error('Error saving in MobileAdmin:', err);
     } finally {
       setIsSaving(false);
     }
 
-    setSavedNotificationText(`Đã lưu thành công! Thông tin tiệm "${localSettings.storeName || 'Tiệm Vàng'}" và bảng giá đã đồng bộ lên TV.`);
+    setSavedNotificationText(`Đã lưu thành công! Thông tin tiệm "${settingsToSave.storeName || 'Tiệm Vàng'}" và bảng giá đã đồng bộ lên TV.`);
     setSavedNotification(true);
     setTimeout(() => {
       setSavedNotification(false);
@@ -1127,7 +1130,7 @@ export const MobileAdmin: React.FC<MobileAdminProps> = ({
                   type="text"
                   value={localSettings.storeName}
                   onChange={(e) => updateSettingsField({ storeName: e.target.value })}
-                  placeholder="Ví dụ: TIỆM VÀNG KIM ĐỨC, VÀNG BẠC ĐỨC KỲ..."
+                  placeholder="Ví dụ: TIỆM VÀNG KIM THỊNH, TIỆM VÀNG BẢO TÍN..."
                   className="w-full px-3 py-2.5 rounded-xl border border-neutral-300 text-sm font-black text-red-950 focus:border-red-700 focus:outline-hidden bg-amber-50/40"
                 />
               </div>
@@ -1301,6 +1304,68 @@ export const MobileAdmin: React.FC<MobileAdminProps> = ({
                   <p className={`text-[11px] leading-snug ${localSettings.layoutMode !== 'single_col' ? 'text-amber-100' : 'text-neutral-500'}`}>
                     Chia làm 2 bảng song song (Vàng chuẩn SJC/PNJ/DOJI bên trái, Nữ trang/Vàng tây bên phải).
                   </p>
+                </button>
+              </div>
+            </div>
+
+            {/* Cài đặt Chống Tràn Mép TV & Cỡ Khung Vừa Vặn Cho TV 40" - 65" */}
+            <div className="bg-white rounded-2xl border border-neutral-200 p-4 shadow-2xs space-y-3">
+              <div className="flex items-center justify-between border-b border-neutral-100 pb-2">
+                <h3 className="text-xs sm:text-sm font-black text-neutral-900 uppercase flex items-center gap-1.5">
+                  <Tv className="w-4 h-4 text-red-700" />
+                  <span>Cỡ Khung TV & Chống Tràn Mép (Cho TV 40" - 65")</span>
+                </h3>
+                <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 border border-amber-300">
+                  {localSettings.tvScalePercent || 100}%
+                </span>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-neutral-700 mb-1.5">
+                  Tỉ lệ vừa khung TV (Khắc phục TV 40" bị lệch khung hoặc tràn ra ngoài mép TV):
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { val: 100, label: '100% (Chuẩn)', desc: 'Màn vi tính / TV không tràn' },
+                    { val: 96, label: '96% (Khuyên dùng)', desc: 'Vừa vặn TV 40" - 43"' },
+                    { val: 92, label: '92% (Gọn viền)', desc: 'Dành cho TV bị lẹm viền nhiều' }
+                  ].map((s) => (
+                    <button
+                      key={s.val}
+                      type="button"
+                      onClick={() => updateSettingsField({ tvScalePercent: s.val })}
+                      className={`p-2.5 rounded-xl text-left cursor-pointer transition-all border-2 ${
+                        (localSettings.tvScalePercent || 100) === s.val
+                          ? 'bg-red-800 text-white border-amber-400 shadow-md'
+                          : 'bg-neutral-50 hover:bg-neutral-100 text-neutral-800 border-neutral-200'
+                      }`}
+                    >
+                      <div className="font-black text-xs">{s.label}</div>
+                      <div className={`text-[10px] mt-0.5 leading-tight ${
+                        (localSettings.tvScalePercent || 100) === s.val ? 'text-amber-200' : 'text-neutral-500'
+                      }`}>
+                        {s.desc}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-neutral-100 flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-bold text-neutral-900">Khung Lề An Toàn TV (Safe Margins)</div>
+                  <div className="text-[11px] text-neutral-500">Tạo khoảng đệm biên để nút bấm và chân chữ không chạm sát viền màn hình TV.</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => updateSettingsField({ tvSafeMargin: localSettings.tvSafeMargin === false ? true : false })}
+                  className={`py-1.5 px-3 rounded-xl text-xs font-black cursor-pointer transition-all ${
+                    localSettings.tvSafeMargin !== false
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'bg-neutral-200 text-neutral-700'
+                  }`}
+                >
+                  {localSettings.tvSafeMargin !== false ? 'Đang BẬT' : 'Đang TẮT'}
                 </button>
               </div>
             </div>
