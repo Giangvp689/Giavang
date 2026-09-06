@@ -155,44 +155,44 @@ export const CustomerBoard: React.FC<CustomerBoardProps> = ({
   // Dynamically adjusts column widths based on single_col vs two_col
   const renderColumnTable = (colItems: typeof visibleItems, columnTitle?: string) => {
     const isSingle = layoutMode === 'single_col';
-    const col1Width = isSingle ? 'w-[44%]' : 'w-[38%]';
-    const col2Width = isSingle ? 'w-[22%]' : 'w-[24%]';
-    const col3Width = isSingle ? 'w-[22%]' : 'w-[24%]';
+    const col1Width = isSingle ? 'w-[44%]' : 'w-[40%]';
+    const col2Width = isSingle ? 'w-[22%]' : 'w-[23%]';
+    const col3Width = isSingle ? 'w-[22%]' : 'w-[23%]';
     const col4Width = isSingle ? 'w-[12%]' : 'w-[14%]';
 
     return (
       <div className="flex-1 flex flex-col h-full bg-white rounded-2xl border border-neutral-200 shadow-xs overflow-hidden">
         {/* Group header if any */}
         {columnTitle && (
-          <div className="px-3 py-1 bg-neutral-100 border-b border-neutral-200 text-[11px] sm:text-xs font-black text-neutral-700 uppercase tracking-wider flex items-center justify-between flex-shrink-0">
+          <div className="px-3 sm:px-4 py-1.5 bg-neutral-100 border-b border-neutral-200 text-xs sm:text-sm font-black text-neutral-800 uppercase tracking-wider flex items-center justify-between flex-shrink-0">
             <span>{columnTitle}</span>
-            <span className="text-[10px] text-neutral-500 font-bold">{colItems.length} loại</span>
+            <span className="text-xs text-neutral-500 font-bold">{colItems.length} loại</span>
           </div>
         )}
 
         {/* 4 Column Headers: LOẠI VÀNG (Đỏ chuẩn tiệm vàng) | MUA VÀO | BÁN RA | CHÊNH LỆCH */}
-        <div className="flex items-stretch text-white text-xs sm:text-sm font-black uppercase tracking-wider flex-shrink-0 bg-[#B91C1C] border-b-2 border-amber-400 shadow-2xs">
+        <div className="flex items-stretch text-white text-xs sm:text-sm md:text-base font-black uppercase tracking-wider flex-shrink-0 bg-[#B91C1C] border-b-2 border-amber-400 shadow-2xs">
           {/* Col 1: LOẠI VÀNG */}
           <div className={`${col1Width} px-3 sm:px-4 py-2 flex items-center bg-[#B91C1C]`}>
-            <span>LOẠI VÀNG</span>
+            <span className="text-xs sm:text-sm md:text-base font-black tracking-wide">LOẠI VÀNG</span>
           </div>
 
           {/* Col 2: MUA VÀO */}
           <div className={`${col2Width} px-1 py-1.5 sm:py-2 text-center bg-[#B91C1C] border-l border-red-800/80 flex flex-col justify-center items-center`}>
-            <div className="leading-tight font-black text-xs sm:text-sm text-white">MUA VÀO</div>
-            <div className="text-[9px] sm:text-[11px] font-bold text-amber-200 uppercase leading-tight mt-0.5">({getUnitSubtitle()})</div>
+            <div className="leading-tight font-black text-xs sm:text-sm md:text-base text-white">MUA VÀO</div>
+            <div className="text-[9px] sm:text-[11px] md:text-xs font-bold text-amber-200 uppercase leading-tight mt-0.5">({getUnitSubtitle()})</div>
           </div>
 
           {/* Col 3: BÁN RA */}
           <div className={`${col3Width} px-1 py-1.5 sm:py-2 text-center bg-[#B91C1C] border-l border-red-800/80 flex flex-col justify-center items-center`}>
-            <div className="leading-tight font-black text-xs sm:text-sm text-white">BÁN RA</div>
-            <div className="text-[9px] sm:text-[11px] font-bold text-amber-200 uppercase leading-tight mt-0.5">({getUnitSubtitle()})</div>
+            <div className="leading-tight font-black text-xs sm:text-sm md:text-base text-white">BÁN RA</div>
+            <div className="text-[9px] sm:text-[11px] md:text-xs font-bold text-amber-200 uppercase leading-tight mt-0.5">({getUnitSubtitle()})</div>
           </div>
 
           {/* Col 4: CHÊNH LỆCH */}
           <div className={`${col4Width} px-0.5 py-1.5 sm:py-2 text-center bg-[#B91C1C] border-l border-red-800/80 flex flex-col justify-center items-center`}>
-            <div className="leading-tight font-black text-[10px] sm:text-xs text-white">CHÊNH LỆCH</div>
-            <div className="text-[8px] sm:text-[9px] font-bold text-amber-200 lowercase leading-tight mt-0.5 hidden xs:block">(so hôm qua)</div>
+            <div className="leading-tight font-black text-[10px] sm:text-xs md:text-sm text-white">CHÊNH LỆCH</div>
+            <div className="text-[8px] sm:text-[9px] md:text-[10px] font-bold text-amber-200 lowercase leading-tight mt-0.5 hidden xs:block">(so hôm qua)</div>
           </div>
         </div>
 
@@ -206,19 +206,15 @@ export const CustomerBoard: React.FC<CustomerBoardProps> = ({
             return (
               <div 
                 key={item.id}
-                className="flex items-center flex-1 min-h-[44px] sm:min-h-0 bg-white hover:bg-neutral-50/80 transition-colors"
+                className="flex items-center flex-1 min-h-[36px] sm:min-h-0 bg-white hover:bg-neutral-50/80 transition-colors overflow-hidden"
               >
-                {/* Col 1: LOẠI VÀNG (Hiển thị đầy đủ tên, không bị cắt bóp) */}
-                <div className={`${col1Width} px-2.5 sm:px-4 py-1.5 flex items-center gap-1.5 sm:gap-2.5 min-w-0 bg-white`}>
-                  <span className="flex-shrink-0 text-[10px] sm:text-xs font-black px-1.5 sm:px-2 py-0.5 rounded-md bg-amber-50 text-amber-950 border border-amber-300 shadow-2xs">
+                {/* Col 1: LOẠI VÀNG (Chữ vừa vặn, rõ nét, 1 dòng không bị tràn chèn lên nhau) */}
+                <div className={`${col1Width} px-2.5 sm:px-3.5 py-1 flex items-center gap-1.5 sm:gap-2.5 min-w-0 bg-white overflow-hidden`}>
+                  <span className="flex-shrink-0 text-[10px] sm:text-xs md:text-sm font-black px-1.5 sm:px-2 py-0.5 rounded-md bg-amber-100 text-amber-950 border border-amber-300 shadow-2xs">
                     {item.brand}
                   </span>
                   <span 
-                    className={`font-black text-neutral-900 leading-snug break-words ${
-                      isSingle 
-                        ? 'text-xs sm:text-sm lg:text-base xl:text-lg line-clamp-2 sm:line-clamp-1' 
-                        : 'text-xs sm:text-sm lg:text-base line-clamp-2 sm:line-clamp-1'
-                    }`} 
+                    className="font-black text-neutral-950 text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl truncate"
                     title={item.cleanName}
                   >
                     {item.cleanName}
@@ -228,7 +224,7 @@ export const CustomerBoard: React.FC<CustomerBoardProps> = ({
                 {/* Col 2: MUA VÀO (Chữ xanh dương hoàng gia, cân đối rõ ràng) */}
                 <div className={`${col2Width} px-1 py-1 text-center border-l border-neutral-200/80 flex items-center justify-center self-stretch bg-white`}>
                   <div className={`font-black text-[#1D4ED8] tracking-tight font-sans tabular-nums leading-none ${
-                    isSingle ? 'text-lg sm:text-2xl lg:text-3xl' : 'text-base sm:text-xl lg:text-2xl xl:text-3xl'
+                    isSingle ? 'text-lg sm:text-xl lg:text-2xl xl:text-3xl' : 'text-base sm:text-lg lg:text-xl xl:text-2xl'
                   }`}>
                     {formatPrice(finalBuy)}
                   </div>
@@ -237,7 +233,7 @@ export const CustomerBoard: React.FC<CustomerBoardProps> = ({
                 {/* Col 3: BÁN RA (Chữ đỏ ruby, cân đối rõ ràng) */}
                 <div className={`${col3Width} px-1 py-1 text-center border-l border-neutral-200/80 flex items-center justify-center self-stretch bg-white`}>
                   <div className={`font-black text-[#DC2626] tracking-tight font-sans tabular-nums leading-none ${
-                    isSingle ? 'text-lg sm:text-2xl lg:text-3xl' : 'text-base sm:text-xl lg:text-2xl xl:text-3xl'
+                    isSingle ? 'text-lg sm:text-xl lg:text-2xl xl:text-3xl' : 'text-base sm:text-lg lg:text-xl xl:text-2xl'
                   }`}>
                     {formatPrice(finalSell)}
                   </div>
@@ -273,9 +269,7 @@ export const CustomerBoard: React.FC<CustomerBoardProps> = ({
 
   return (
     <div 
-      className={`w-full h-screen max-h-screen flex flex-col justify-between select-none overflow-hidden bg-[#F8F9FA] text-neutral-900 ${
-        isFullscreen ? 'fixed inset-0 z-50' : ''
-      }`}
+      className="fixed inset-0 z-50 w-screen h-screen max-h-screen flex flex-col justify-between select-none overflow-hidden bg-[#F8F9FA] text-neutral-900"
     >
       {/* 0. SLIM BANNER TRÊN MOBILE DÀNH CHO CHỦ TIỆM ĐỔI GIÁ (Không bị che khuất) */}
       <div className="md:hidden bg-gradient-to-r from-red-900 via-[#B91C1C] to-red-900 text-white px-3 py-1.5 flex items-center justify-between border-b border-amber-400 z-30 shadow-xs">
@@ -347,10 +341,10 @@ export const CustomerBoard: React.FC<CustomerBoardProps> = ({
             </div>
           </div>
 
-          {/* Right: Đồng Hồ, Lấy Giá Tự Động, Toàn màn hình TV & Nút Quản Lý Đổi Giá */}
-          <div className="flex items-center gap-1.5 sm:gap-2.5 flex-shrink-0">
+          {/* Right: Đồng Hồ, Toàn màn hình TV & Nút Quản Lý Đổi Giá */}
+          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
             {/* Digital Live Clock */}
-            <div className="bg-neutral-100 border border-neutral-200 rounded-xl px-2 sm:px-3 py-1 text-right">
+            <div className="bg-neutral-100 border border-neutral-200 rounded-xl px-2.5 sm:px-3.5 py-1 text-right">
               <div className="text-xs sm:text-base font-black text-neutral-900 tracking-tight font-mono leading-none">
                 {timeString}
               </div>
@@ -359,57 +353,16 @@ export const CustomerBoard: React.FC<CustomerBoardProps> = ({
               </div>
             </div>
 
-            {/* NÚT LẤY GIÁ TỰ ĐỘNG SJC • PNJ • DOJI */}
-            {onRefreshMarket && (
-              <button
-                type="button"
-                onClick={onRefreshMarket}
-                disabled={isRefreshing}
-                className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 active:from-amber-500 active:to-amber-600 text-red-950 text-xs font-black flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95 transition-all disabled:opacity-50 border border-amber-300"
-                title="Lấy giá mới nhất trực tiếp từ thị trường (SJC, PNJ, DOJI)"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 text-red-900 flex-shrink-0 ${isRefreshing ? 'animate-spin' : ''}`} />
-                <span className="font-extrabold uppercase hidden md:inline">
-                  {isRefreshing ? 'Đang lấy giá...' : 'Lấy Giá Tự Động'}
-                </span>
-                <span className="font-extrabold uppercase md:hidden">
-                  {isRefreshing ? 'Đang lấy...' : 'Lấy Giá'}
-                </span>
-              </button>
-            )}
-
-            {/* Nút Chuyển Đổi 1 BẢNG / 2 BẢNG (1 Chạm) */}
-            <button
-              type="button"
-              onClick={handleToggleLayout}
-              className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-neutral-100 hover:bg-neutral-200 active:bg-neutral-300 text-neutral-800 text-xs font-black flex items-center gap-1.5 cursor-pointer shadow-xs border border-neutral-300 active:scale-95 transition-all"
-              title={layoutMode === 'single_col' ? "Đang hiện 1 Bảng. Nhấn để chuyển sang 2 Bảng song song" : "Đang hiện 2 Bảng. Nhấn để chuyển sang 1 Bảng to rõ"}
-            >
-              {layoutMode === 'single_col' ? (
-                <>
-                  <Columns className="w-3.5 h-3.5 text-red-700" />
-                  <span className="font-extrabold uppercase hidden sm:inline">Chuyển 2 Bảng</span>
-                  <span className="font-extrabold uppercase sm:hidden">2 Bảng</span>
-                </>
-              ) : (
-                <>
-                  <Rows className="w-3.5 h-3.5 text-red-700" />
-                  <span className="font-extrabold uppercase hidden sm:inline">Chuyển 1 Bảng</span>
-                  <span className="font-extrabold uppercase sm:hidden">1 Bảng</span>
-                </>
-              )}
-            </button>
-
             {/* Fullscreen TV Toggle */}
             {onToggleFullscreen && (
               <button
                 type="button"
                 onClick={onToggleFullscreen}
-                className="hidden sm:flex px-2.5 sm:px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-red-950 text-xs font-black items-center gap-1.5 cursor-pointer shadow-xs active:scale-95 transition-all"
+                className="flex px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-red-950 text-xs font-black items-center gap-1.5 cursor-pointer shadow-xs active:scale-95 transition-all border border-amber-500/30"
                 title="Bật/tắt toàn màn hình TV"
               >
                 {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
-                <span className="hidden md:inline font-extrabold uppercase">
+                <span className="font-extrabold uppercase">
                   {isFullscreen ? 'Thu nhỏ' : 'Toàn màn hình'}
                 </span>
               </button>

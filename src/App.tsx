@@ -73,7 +73,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<'board' | 'admin' | 'calculator'>(getInitialTab);
   const [unit, setUnit] = useState<UnitType>(settings.displayUnit || 'chi');
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
-  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(true);
   const [isFirebaseConnected, setIsFirebaseConnected] = useState<boolean>(false);
   const [lastSyncTime, setLastSyncTime] = useState<string>('');
 
