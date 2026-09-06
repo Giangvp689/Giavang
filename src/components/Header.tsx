@@ -68,12 +68,12 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
             </div>
 
-            <div>
+            <div className="flex-shrink-0">
               <div className="flex items-center gap-2">
-                <h1 className="text-xl sm:text-2xl font-black tracking-wider text-red-800 font-serif uppercase">
+                <h1 className="text-xl sm:text-2xl font-black tracking-wider text-red-800 font-serif uppercase whitespace-nowrap">
                   {settings.storeName || "TIỆM VÀNG ĐỨC KỲ"}
                 </h1>
-                <span className="hidden sm:inline-block text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold border border-emerald-200">
+                <span className="hidden sm:inline-block text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold border border-emerald-200 whitespace-nowrap">
                   Thời gian thực SJC • PNJ • DOJI
                 </span>
               </div>
