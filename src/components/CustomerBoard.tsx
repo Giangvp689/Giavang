@@ -14,7 +14,8 @@ import {
   ArrowRight,
   Share2,
   Columns,
-  Rows
+  Rows,
+  RefreshCw
 } from 'lucide-react';
 import { GoldItem, StoreSettings, UnitType } from '../types';
 import { calculateStorePrices, convertPriceByUnit } from '../utils/goldMath';
@@ -44,6 +45,8 @@ export const CustomerBoard: React.FC<CustomerBoardProps> = ({
   onToggleFullscreen,
   onOpenAdmin,
   onUpdateSettings,
+  onRefreshMarket,
+  isRefreshing = false,
   isFirebaseConnected = false,
   lastSyncedTime = ''
 }) => {
@@ -344,8 +347,8 @@ export const CustomerBoard: React.FC<CustomerBoardProps> = ({
             </div>
           </div>
 
-          {/* Right: Đồng Hồ, Toàn màn hình TV & Nút Quản Lý Đổi Giá */}
-          <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
+          {/* Right: Đồng Hồ, Lấy Giá Tự Động, Toàn màn hình TV & Nút Quản Lý Đổi Giá */}
+          <div className="flex items-center gap-1.5 sm:gap-2.5 flex-shrink-0">
             {/* Digital Live Clock */}
             <div className="bg-neutral-100 border border-neutral-200 rounded-xl px-2 sm:px-3 py-1 text-right">
               <div className="text-xs sm:text-base font-black text-neutral-900 tracking-tight font-mono leading-none">
@@ -355,6 +358,25 @@ export const CustomerBoard: React.FC<CustomerBoardProps> = ({
                 {dateString}
               </div>
             </div>
+
+            {/* NÚT LẤY GIÁ TỰ ĐỘNG SJC • PNJ • DOJI */}
+            {onRefreshMarket && (
+              <button
+                type="button"
+                onClick={onRefreshMarket}
+                disabled={isRefreshing}
+                className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 active:from-amber-500 active:to-amber-600 text-red-950 text-xs font-black flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95 transition-all disabled:opacity-50 border border-amber-300"
+                title="Lấy giá mới nhất trực tiếp từ thị trường (SJC, PNJ, DOJI)"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 text-red-900 flex-shrink-0 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <span className="font-extrabold uppercase hidden md:inline">
+                  {isRefreshing ? 'Đang lấy giá...' : 'Lấy Giá Tự Động'}
+                </span>
+                <span className="font-extrabold uppercase md:hidden">
+                  {isRefreshing ? 'Đang lấy...' : 'Lấy Giá'}
+                </span>
+              </button>
+            )}
 
             {/* Nút Chuyển Đổi 1 BẢNG / 2 BẢNG (1 Chạm) */}
             <button

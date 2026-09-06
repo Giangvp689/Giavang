@@ -205,17 +205,31 @@ export default function App() {
         const cloudData = await fetchStoreConfigFromFirebase();
         if (cloudData && cloudData.items && cloudData.items.length > 0) {
           isUpdatingFromRemoteRef.current = true;
-          setItems(cloudData.items);
-          if (cloudData.settings) {
-            setSettings(cloudData.settings);
-            if (cloudData.settings.displayUnit) {
-              setUnit(cloudData.settings.displayUnit);
+          // Verify if cloudData items have legacy stale rates (e.g. SJC < 100,000,000)
+          const sjc = cloudData.items.find(i => i.id === 'sjc-1l');
+          const isStale = !sjc || sjc.apiBuy < 100000000;
+
+          if (isStale) {
+            setItems(INITIAL_GOLD_ITEMS);
+            const freshSettings: StoreSettings = {
+              ...(cloudData.settings || settings),
+              pricingMode: 'auto_market'
+            };
+            setSettings(freshSettings);
+            saveStoreConfigToFirebase(INITIAL_GOLD_ITEMS, freshSettings, 'market_upgrade').catch(() => {});
+          } else {
+            setItems(cloudData.items);
+            if (cloudData.settings) {
+              setSettings(cloudData.settings);
+              if (cloudData.settings.displayUnit) {
+                setUnit(cloudData.settings.displayUnit);
+              }
             }
           }
           setIsFirebaseConnected(true);
           isUpdatingFromRemoteRef.current = false;
         } else {
-          saveStoreConfigToFirebase(items, settings, 'initial_seed')
+          saveStoreConfigToFirebase(INITIAL_GOLD_ITEMS, settings, 'initial_seed')
             .then(() => setIsFirebaseConnected(true))
             .catch(() => {});
         }

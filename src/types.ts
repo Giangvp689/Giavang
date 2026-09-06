@@ -64,7 +64,11 @@ export interface StoreSettings {
   globalProfitOnBuyPercent: number;
   globalSpreadPercent: number;
   
-  pricingMode: 'formula' | 'custom_override';
+  // Pricing mode:
+  // - 'auto_market': 100% chuẩn giá thị trường SJC, PNJ, DOJI (không bị trừ hoặc cộng lệch)
+  // - 'formula': Tự động lấy giá thị trường + cộng/trừ chênh lệch của tiệm (amount_delta hoặc percent)
+  // - 'custom_override': Chủ tiệm tự gõ giá cứng thủ công
+  pricingMode: 'auto_market' | 'formula' | 'custom_override';
   roundingRule?: 'round_up_step_5_10' | 'round_up_10' | 'round_none';
   autoSyncIntervalMinutes: number;
   lastSyncedAt: string;

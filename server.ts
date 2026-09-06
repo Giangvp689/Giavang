@@ -37,13 +37,13 @@ const benchmarkRates: ServerGoldItem[] = [
     purity: "99.99%",
     brand: "SJC",
     category: "sjc",
-    buy: 88500000,
-    sell: 90500000,
-    prevDayBuy: 88200000,
-    prevDaySell: 90200000,
+    buy: 144600000,
+    sell: 147600000,
+    prevDayBuy: 144350000,
+    prevDaySell: 147350000,
     trend: "up",
-    changeAmount: 300000,
-    changePercent: 0.33
+    changeAmount: 250000,
+    changePercent: 0.28
   },
   {
     id: "sjc-nhan-9999",
@@ -51,10 +51,10 @@ const benchmarkRates: ServerGoldItem[] = [
     purity: "99.99%",
     brand: "SJC",
     category: "sjc",
-    buy: 87500000,
-    sell: 89000000,
-    prevDayBuy: 87300000,
-    prevDaySell: 88800000,
+    buy: 144100000,
+    sell: 147100000,
+    prevDayBuy: 143900000,
+    prevDaySell: 146900000,
     trend: "up",
     changeAmount: 200000,
     changePercent: 0.23
@@ -67,13 +67,13 @@ const benchmarkRates: ServerGoldItem[] = [
     purity: "99.99%",
     brand: "PNJ",
     category: "pnj",
-    buy: 87600000,
-    sell: 89100000,
-    prevDayBuy: 87400000,
-    prevDaySell: 88900000,
+    buy: 144600000,
+    sell: 147600000,
+    prevDayBuy: 144350000,
+    prevDaySell: 147350000,
     trend: "up",
-    changeAmount: 200000,
-    changePercent: 0.22
+    changeAmount: 250000,
+    changePercent: 0.28
   },
   {
     id: "pnj-nhan-tron",
@@ -81,10 +81,10 @@ const benchmarkRates: ServerGoldItem[] = [
     purity: "99.99%",
     brand: "PNJ",
     category: "pnj",
-    buy: 87400000,
-    sell: 88900000,
-    prevDayBuy: 87250000,
-    prevDaySell: 88750000,
+    buy: 144600000,
+    sell: 147900000,
+    prevDayBuy: 144450000,
+    prevDaySell: 147750000,
     trend: "up",
     changeAmount: 150000,
     changePercent: 0.17
@@ -95,13 +95,13 @@ const benchmarkRates: ServerGoldItem[] = [
     purity: "99.90%",
     brand: "PNJ",
     category: "pnj",
-    buy: 86400000,
-    sell: 88200000,
-    prevDayBuy: 86200000,
-    prevDaySell: 88000000,
+    buy: 142860000,
+    sell: 146710000,
+    prevDayBuy: 142710000,
+    prevDaySell: 146560000,
     trend: "up",
-    changeAmount: 200000,
-    changePercent: 0.23
+    changeAmount: 150000,
+    changePercent: 0.18
   },
 
   // 3. DOJI
@@ -111,10 +111,10 @@ const benchmarkRates: ServerGoldItem[] = [
     purity: "99.99%",
     brand: "DOJI",
     category: "doji",
-    buy: 87550000,
-    sell: 89050000,
-    prevDayBuy: 87300000,
-    prevDaySell: 88800000,
+    buy: 144600000,
+    sell: 147600000,
+    prevDayBuy: 144350000,
+    prevDaySell: 147350000,
     trend: "up",
     changeAmount: 250000,
     changePercent: 0.28
@@ -125,13 +125,13 @@ const benchmarkRates: ServerGoldItem[] = [
     purity: "99.99%",
     brand: "DOJI",
     category: "doji",
-    buy: 87450000,
-    sell: 88950000,
-    prevDayBuy: 87200000,
-    prevDaySell: 88700000,
+    buy: 146000000,
+    sell: 150000000,
+    prevDayBuy: 145800000,
+    prevDaySell: 149800000,
     trend: "up",
-    changeAmount: 250000,
-    changePercent: 0.28
+    changeAmount: 200000,
+    changePercent: 0.23
   },
 
   // 4. AAA (Vàng AAA / Vàng Rồng Thăng Long AAA)
@@ -141,13 +141,13 @@ const benchmarkRates: ServerGoldItem[] = [
     purity: "99.99%",
     brand: "AAA",
     category: "aaa",
-    buy: 87500000,
-    sell: 89000000,
-    prevDayBuy: 87350000,
-    prevDaySell: 88850000,
+    buy: 145800000,
+    sell: 149800000,
+    prevDayBuy: 145550000,
+    prevDaySell: 149550000,
     trend: "up",
-    changeAmount: 150000,
-    changePercent: 0.17
+    changeAmount: 250000,
+    changePercent: 0.28
   },
   {
     id: "aaa-nhan-tron-9999",
@@ -155,13 +155,13 @@ const benchmarkRates: ServerGoldItem[] = [
     purity: "99.99%",
     brand: "AAA",
     category: "aaa",
-    buy: 87400000,
-    sell: 88900000,
-    prevDayBuy: 87200000,
-    prevDaySell: 88700000,
+    buy: 145070000,
+    sell: 149050000,
+    prevDayBuy: 144920000,
+    prevDaySell: 148900000,
     trend: "up",
-    changeAmount: 200000,
-    changePercent: 0.23
+    changeAmount: 150000,
+    changePercent: 0.17
   },
 
   // 5. Nữ Trang Tiệm Vàng Đức Kỳ
@@ -171,10 +171,10 @@ const benchmarkRates: ServerGoldItem[] = [
     purity: "99.90%",
     brand: "TIỆM",
     category: "jewelry",
-    buy: 86200000,
-    sell: 88100000,
-    prevDayBuy: 86000000,
-    prevDaySell: 87900000,
+    buy: 140980000,
+    sell: 143610000,
+    prevDayBuy: 140780000,
+    prevDaySell: 143410000,
     trend: "up",
     changeAmount: 200000,
     changePercent: 0.23
@@ -185,10 +185,10 @@ const benchmarkRates: ServerGoldItem[] = [
     purity: "75.00%",
     brand: "TIỆM",
     category: "jewelry",
-    buy: 64800000,
-    sell: 67500000,
-    prevDayBuy: 64800000,
-    prevDaySell: 67500000,
+    buy: 105850000,
+    sell: 109960000,
+    prevDayBuy: 105850000,
+    prevDaySell: 109960000,
     trend: "equal",
     changeAmount: 0,
     changePercent: 0
@@ -199,10 +199,10 @@ const benchmarkRates: ServerGoldItem[] = [
     purity: "75.00%",
     brand: "TIỆM",
     category: "jewelry",
-    buy: 63900000,
-    sell: 66800000,
-    prevDayBuy: 63750000,
-    prevDaySell: 66650000,
+    buy: 104400000,
+    sell: 108930000,
+    prevDayBuy: 104250000,
+    prevDaySell: 108780000,
     trend: "up",
     changeAmount: 150000,
     changePercent: 0.23
@@ -213,10 +213,10 @@ const benchmarkRates: ServerGoldItem[] = [
     purity: "58.50%",
     brand: "TIỆM",
     category: "jewelry",
-    buy: 49600000,
-    sell: 52500000,
-    prevDayBuy: 49600000,
-    prevDaySell: 52500000,
+    buy: 80980000,
+    sell: 85610000,
+    prevDayBuy: 80980000,
+    prevDaySell: 85610000,
     trend: "equal",
     changeAmount: 0,
     changePercent: 0
@@ -227,10 +227,10 @@ const benchmarkRates: ServerGoldItem[] = [
     purity: "41.60%",
     brand: "TIỆM",
     category: "jewelry",
-    buy: 34300000,
-    sell: 37200000,
-    prevDayBuy: 34400000,
-    prevDaySell: 37300000,
+    buy: 56100000,
+    sell: 60660000,
+    prevDayBuy: 56200000,
+    prevDaySell: 60760000,
     trend: "down",
     changeAmount: -100000,
     changePercent: -0.27
@@ -264,15 +264,15 @@ async function fetchLiveGoldApi(): Promise<{ source: string; timestamp: string; 
         // Helper to normalize price (in case API returns in per lượng or per chi)
         const normalize = (val: any) => {
           const num = typeof val === 'number' ? val : parseFloat(val);
-          if (isNaN(num) || num <= 0) return 88000000;
-          // If value is around 8,800,000 (per chỉ), multiply by 10
+          if (isNaN(num) || num <= 0) return 144600000;
+          // If value is around 14,460,000 (per chỉ), multiply by 10
           if (num < 20000000) return num * 10;
           return num;
         };
 
         // Extract SJC
-        const sjcBuy = p.SJL1L10?.buy ? normalize(p.SJL1L10.buy) : 88500000;
-        const sjcSell = p.SJL1L10?.sell ? normalize(p.SJL1L10.sell) : 90500000;
+        const sjcBuy = p.SJL1L10?.buy ? normalize(p.SJL1L10.buy) : 144600000;
+        const sjcSell = p.SJL1L10?.sell ? normalize(p.SJL1L10.sell) : 147600000;
         const sjcRingBuy = p.SJ9999?.buy ? normalize(p.SJ9999.buy) : Math.round(sjcBuy * 0.988);
         const sjcRingSell = p.SJ9999?.sell ? normalize(p.SJ9999.sell) : Math.round(sjcSell * 0.985);
 

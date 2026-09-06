@@ -63,23 +63,32 @@ export function calculateStorePrices(item: GoldItem, settings: StoreSettings): {
   let finalSell: number;
   let isCustom = false;
 
-  const rawBuy = item.apiBuy || item.baseBuy || 88000000;
-  const rawSell = item.apiSell || item.baseSell || 90000000;
+  // Fallback defaults to current market reality (144.6tr - 147.6tr)
+  const rawBuy = item.apiBuy || item.baseBuy || 144600000;
+  const rawSell = item.apiSell || item.baseSell || 147600000;
+  const pricingMode = settings.pricingMode || 'auto_market';
 
-  // 1. Check if owner set manual custom override price or if in global custom override mode
-  if ((item.useCustomPrice || settings.pricingMode === 'custom_override') && item.customBuy && item.customSell) {
+  // 1. Chế độ TỰ ĐỘNG THỊ TRƯỜNG CHUẨN 100% (Giá SJC, PNJ, DOJI, AAA gốc không bị lệch)
+  if (pricingMode === 'auto_market') {
+    finalBuy = rawBuy;
+    finalSell = rawSell;
+    isCustom = false;
+  }
+  // 2. Chế độ GÕ GIÁ THỦ CÔNG (Khi chủ tiệm tự đặt giá cứng cho loại vàng này)
+  else if ((item.useCustomPrice || pricingMode === 'custom_override') && item.customBuy && item.customSell) {
     finalBuy = Math.round(item.customBuy);
     finalSell = Math.round(item.customSell);
     isCustom = true;
-  } else {
-    // 2. Apply Pricing Calculation Mode:
+  } 
+  // 3. Chế độ TỰ ĐỘNG + CHÊNH LỆCH TIỆM (Thị trường +/- tiền hoặc %)
+  else {
     const calcType = settings.calculationType || 'amount_delta';
 
     if (calcType === 'amount_delta') {
       // Chế độ nhập tiền chênh lệch (Ví dụ: giá thị trường 16600 -> mua vào trừ 100 thành 16500, bán ra cộng 100 thành 16700)
       // Đơn vị buyAmountDeltaPerChi: nghìn đồng/chỉ (100 nghìn/chỉ = 1.000.000 đ/lượng)
-      const buyDeltaPerLuong = (settings.buyAmountDeltaPerChi ?? 100) * 10000;
-      const sellDeltaPerLuong = (settings.sellAmountDeltaPerChi ?? 100) * 10000;
+      const buyDeltaPerLuong = (settings.buyAmountDeltaPerChi ?? 0) * 10000;
+      const sellDeltaPerLuong = (settings.sellAmountDeltaPerChi ?? 0) * 10000;
 
       const unroundedBuy = Math.max(0, rawBuy - buyDeltaPerLuong);
       finalBuy = applyRounding(unroundedBuy, settings.roundingRule);
@@ -89,12 +98,12 @@ export function calculateStorePrices(item: GoldItem, settings: StoreSettings): {
     } else {
       // Chế độ tính theo %:
       // Mua vào trừ % so với giá thị trường (để tiệm có lời khi thu mua)
-      const buyDiscountRate = settings.buyDiscountPercent ?? (settings.globalProfitOnBuyPercent ?? 0.8);
+      const buyDiscountRate = settings.buyDiscountPercent ?? (settings.globalProfitOnBuyPercent ?? 0);
       const unroundedBuy = rawBuy * (1 - buyDiscountRate / 100);
       finalBuy = applyRounding(unroundedBuy, settings.roundingRule);
 
       // Bán ra cộng % so với giá thị trường / giá mua (để tiệm có lãi khi bán)
-      const sellMarginRate = settings.sellMarginPercent ?? (settings.globalSpreadPercent ?? 1.5);
+      const sellMarginRate = settings.sellMarginPercent ?? (settings.globalSpreadPercent ?? 0);
       const unroundedSell = rawSell * (1 + sellMarginRate / 100);
       finalSell = applyRounding(unroundedSell, settings.roundingRule);
     }

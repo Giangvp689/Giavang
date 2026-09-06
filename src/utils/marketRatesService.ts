@@ -54,13 +54,13 @@ export async function getLiveMarketRates(): Promise<PublicRatesResponse | null> 
 
         const normalize = (val: any) => {
           const num = typeof val === 'number' ? val : parseFloat(val);
-          if (isNaN(num) || num <= 0) return 88500000;
+          if (isNaN(num) || num <= 0) return 144600000;
           if (num < 20000000) return num * 10;
           return num;
         };
 
-        const sjcBuy = p.SJL1L10?.buy ? normalize(p.SJL1L10.buy) : 88500000;
-        const sjcSell = p.SJL1L10?.sell ? normalize(p.SJL1L10.sell) : 90500000;
+        const sjcBuy = p.SJL1L10?.buy ? normalize(p.SJL1L10.buy) : 144600000;
+        const sjcSell = p.SJL1L10?.sell ? normalize(p.SJL1L10.sell) : 147600000;
         const sjcRingBuy = p.SJ9999?.buy ? normalize(p.SJ9999.buy) : Math.round(sjcBuy * 0.988);
         const sjcRingSell = p.SJ9999?.sell ? normalize(p.SJ9999.sell) : Math.round(sjcSell * 0.985);
 
@@ -80,6 +80,7 @@ export async function getLiveMarketRates(): Promise<PublicRatesResponse | null> 
           source: 'Thị Trường Vàng Việt Nam (SJC, PNJ, DOJI, BTMC)',
           timestamp: timeFormatted,
           rates: [
+            // 1. SJC
             {
               id: 'sjc-1l',
               name: 'Vàng miếng SJC 999.9 (1L - 10L)',
@@ -88,11 +89,11 @@ export async function getLiveMarketRates(): Promise<PublicRatesResponse | null> 
               category: 'sjc',
               buy: sjcBuy,
               sell: sjcSell,
-              prevDayBuy: sjcBuy - 200000,
-              prevDaySell: sjcSell - 200000,
+              prevDayBuy: sjcBuy - 250000,
+              prevDaySell: sjcSell - 250000,
               trend: 'up',
-              changeAmount: 200000,
-              changePercent: 0.22
+              changeAmount: 250000,
+              changePercent: 0.28
             },
             {
               id: 'sjc-nhan-9999',
@@ -108,47 +109,95 @@ export async function getLiveMarketRates(): Promise<PublicRatesResponse | null> 
               changeAmount: 200000,
               changePercent: 0.23
             },
+
+            // 2. PNJ
             {
-              id: 'pnj-vang-mieng',
+              id: 'pnj-mieng',
               name: 'Vàng miếng PNJ 999.9',
               purity: '99.99%',
               brand: 'PNJ',
               category: 'pnj',
               buy: pnjBuy,
               sell: pnjSell,
-              prevDayBuy: pnjBuy - 150000,
-              prevDaySell: pnjSell - 150000,
+              prevDayBuy: pnjBuy - 250000,
+              prevDaySell: pnjSell - 250000,
               trend: 'up',
-              changeAmount: 150000,
-              changePercent: 0.17
+              changeAmount: 250000,
+              changePercent: 0.28
             },
             {
-              id: 'pnj-nhan-tron-24k',
-              name: 'Nhẫn trơn PNJ 24K (99.99%)',
+              id: 'pnj-nhan-tron',
+              name: 'Nhẫn trơn PNJ 999.9',
               purity: '99.99%',
               brand: 'PNJ',
               category: 'pnj',
               buy: pnj24kBuy,
               sell: pnj24kSell,
-              prevDayBuy: pnj24kBuy - 200000,
-              prevDaySell: pnj24kSell - 200000,
+              prevDayBuy: pnj24kBuy - 150000,
+              prevDaySell: pnj24kSell - 150000,
               trend: 'up',
-              changeAmount: 200000,
-              changePercent: 0.23
+              changeAmount: 150000,
+              changePercent: 0.17
             },
             {
-              id: 'doji-avpl',
-              name: 'Vàng miếng DOJI (Âu Vàng Phúc Long)',
+              id: 'pnj-nu-trang-24k',
+              name: 'Nữ trang PNJ 24K (99.9%)',
+              purity: '99.90%',
+              brand: 'PNJ',
+              category: 'pnj',
+              buy: Math.round(sjcBuy * 0.988),
+              sell: Math.round(sjcSell * 0.994),
+              prevDayBuy: Math.round((sjcBuy - 150000) * 0.988),
+              prevDaySell: Math.round((sjcSell - 150000) * 0.994),
+              trend: 'up',
+              changeAmount: 150000,
+              changePercent: 0.18
+            },
+
+            // 3. DOJI
+            {
+              id: 'doji-au-vang',
+              name: 'DOJI Âu Vàng Phúc Long 999.9',
               purity: '99.99%',
               brand: 'DOJI',
               category: 'doji',
               buy: dojiBuy,
               sell: dojiSell,
-              prevDayBuy: dojiBuy - 150000,
-              prevDaySell: dojiSell - 150000,
+              prevDayBuy: dojiBuy - 250000,
+              prevDaySell: dojiSell - 250000,
               trend: 'up',
-              changeAmount: 150000,
-              changePercent: 0.17
+              changeAmount: 250000,
+              changePercent: 0.28
+            },
+            {
+              id: 'doji-nhan-hung-thinh',
+              name: 'Nhẫn tròn DOJI Hưng Thịnh Vượng 9999',
+              purity: '99.99%',
+              brand: 'DOJI',
+              category: 'doji',
+              buy: Math.round(sjcBuy * 1.0097),
+              sell: Math.round(sjcSell * 1.0162),
+              prevDayBuy: Math.round((sjcBuy - 200000) * 1.0097),
+              prevDaySell: Math.round((sjcSell - 200000) * 1.0162),
+              trend: 'up',
+              changeAmount: 200000,
+              changePercent: 0.23
+            },
+
+            // 4. AAA
+            {
+              id: 'aaa-mieng-9999',
+              name: 'Vàng miếng AAA 999.9',
+              purity: '99.99%',
+              brand: 'AAA',
+              category: 'aaa',
+              buy: Math.round(sjcBuy * 1.008),
+              sell: Math.round(sjcSell * 1.015),
+              prevDayBuy: Math.round((sjcBuy - 250000) * 1.008),
+              prevDaySell: Math.round((sjcSell - 250000) * 1.015),
+              trend: 'up',
+              changeAmount: 250000,
+              changePercent: 0.28
             },
             {
               id: 'aaa-nhan-tron-9999',
@@ -158,11 +207,83 @@ export async function getLiveMarketRates(): Promise<PublicRatesResponse | null> 
               category: 'aaa',
               buy: aaaBuy,
               sell: aaaSell,
-              prevDayBuy: aaaBuy - 200000,
-              prevDaySell: aaaSell - 200000,
+              prevDayBuy: aaaBuy - 150000,
+              prevDaySell: aaaSell - 150000,
+              trend: 'up',
+              changeAmount: 150000,
+              changePercent: 0.17
+            },
+
+            // 5. Nữ Trang Tiệm Vàng Đức Kỳ
+            {
+              id: 'tiem-nu-trang-24k',
+              name: 'Vàng nữ trang 24K (99.9%)',
+              purity: '99.90%',
+              brand: 'TIỆM',
+              category: 'jewelry',
+              buy: Math.round(sjcBuy * 0.975),
+              sell: Math.round(sjcSell * 0.973),
+              prevDayBuy: Math.round((sjcBuy - 200000) * 0.975),
+              prevDaySell: Math.round((sjcSell - 200000) * 0.973),
               trend: 'up',
               changeAmount: 200000,
               changePercent: 0.23
+            },
+            {
+              id: 'tiem-vang-y-750',
+              name: 'Vàng trắng Ý 750 (Italy 750)',
+              purity: '75.00%',
+              brand: 'TIỆM',
+              category: 'jewelry',
+              buy: Math.round(sjcBuy * 0.732),
+              sell: Math.round(sjcSell * 0.745),
+              prevDayBuy: Math.round(sjcBuy * 0.732),
+              prevDaySell: Math.round(sjcSell * 0.745),
+              trend: 'equal',
+              changeAmount: 0,
+              changePercent: 0
+            },
+            {
+              id: 'tiem-nu-trang-18k',
+              name: 'Vàng tây 18K (75.0% Đức Kỳ)',
+              purity: '75.00%',
+              brand: 'TIỆM',
+              category: 'jewelry',
+              buy: Math.round(sjcBuy * 0.722),
+              sell: Math.round(sjcSell * 0.738),
+              prevDayBuy: Math.round((sjcBuy - 150000) * 0.722),
+              prevDaySell: Math.round((sjcSell - 150000) * 0.738),
+              trend: 'up',
+              changeAmount: 150000,
+              changePercent: 0.23
+            },
+            {
+              id: 'tiem-nu-trang-14k',
+              name: 'Vàng tây 14K (58.5% Đức Kỳ)',
+              purity: '58.50%',
+              brand: 'TIỆM',
+              category: 'jewelry',
+              buy: Math.round(sjcBuy * 0.560),
+              sell: Math.round(sjcSell * 0.580),
+              prevDayBuy: Math.round(sjcBuy * 0.560),
+              prevDaySell: Math.round(sjcSell * 0.580),
+              trend: 'equal',
+              changeAmount: 0,
+              changePercent: 0
+            },
+            {
+              id: 'tiem-nu-trang-10k',
+              name: 'Vàng tây 10K (41.6% Đức Kỳ)',
+              purity: '41.60%',
+              brand: 'TIỆM',
+              category: 'jewelry',
+              buy: Math.round(sjcBuy * 0.388),
+              sell: Math.round(sjcSell * 0.411),
+              prevDayBuy: Math.round((sjcBuy + 100000) * 0.388),
+              prevDaySell: Math.round((sjcSell + 100000) * 0.411),
+              trend: 'down',
+              changeAmount: -100000,
+              changePercent: -0.27
             }
           ]
         };

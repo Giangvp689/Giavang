@@ -298,6 +298,29 @@ export const MobileAdmin: React.FC<MobileAdminProps> = ({
     }));
   };
 
+  // Reset ALL items to automatic market price & switch pricingMode to 'auto_market'
+  const handleResetAllToAuto = () => {
+    const updatedItems = localItems.map(item => ({
+      ...item,
+      customBuy: null,
+      customSell: null,
+      useCustomPrice: false
+    }));
+    const updatedSettings: StoreSettings = {
+      ...localSettings,
+      pricingMode: 'auto_market',
+      buyAmountDeltaPerChi: 0,
+      sellAmountDeltaPerChi: 0
+    };
+    setLocalItems(updatedItems);
+    setLocalSettings(updatedSettings);
+    onUpdateItems(updatedItems);
+    onUpdateSettings(updatedSettings);
+    onRefreshMarket();
+    setSavedNotification(true);
+    setTimeout(() => setSavedNotification(false), 3000);
+  };
+
   // Toggle item visibility on TV
   const handleToggleVisibility = (itemId: string) => {
     setLocalItems(prev => prev.map(item => {
@@ -457,37 +480,127 @@ export const MobileAdmin: React.FC<MobileAdminProps> = ({
         {activeTab === 'pricing' && (
           <div className="space-y-3">
             
-            {/* Thanh công cụ: Nút lấy giá API mới nhất & Bộ lọc thương hiệu */}
-            <div className="bg-white rounded-2xl p-3 border border-neutral-200 shadow-2xs space-y-2.5">
-              <div className="flex items-center justify-between gap-2">
-                <div>
-                  <h2 className="text-xs sm:text-sm font-black text-neutral-900 uppercase">
-                    Chỉnh Giá Vàng Cửa Hàng
-                  </h2>
-                  <p className="text-[11px] text-neutral-500">
-                    Đơn vị: <strong className="text-red-700">Nghìn đồng / Chỉ</strong> (Ví dụ 14.360k)
-                  </p>
+            {/* THẺ ĐIỀU KHIỂN: LẤY GIÁ TỰ ĐỘNG TỪ THỊ TRƯỜNG (SJC, DOJI, PNJ) */}
+            <div className="bg-white rounded-2xl p-3 sm:p-4 border-2 border-amber-400 shadow-xs space-y-3">
+              <div className="flex items-center justify-between gap-2 border-b border-neutral-100 pb-2.5">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-900 flex-shrink-0">
+                    <Radio className="w-4 h-4 text-amber-700 animate-pulse" />
+                  </div>
+                  <div>
+                    <h2 className="text-xs sm:text-sm font-black text-neutral-900 uppercase">
+                      Lấy Giá Tự Động Thị Trường
+                    </h2>
+                    <p className="text-[11px] text-neutral-500">
+                      SJC • DOJI • PNJ • Bảo Tín Minh Châu
+                    </p>
+                  </div>
                 </div>
 
+                <div className="text-right">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black border border-emerald-300">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
+                    <span>Trực tiếp</span>
+                  </span>
+                  <div className="text-[10px] text-neutral-400 font-medium mt-0.5">
+                    {localSettings.lastSyncedAt || 'Hôm nay'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Nút bấm lớn: Lấy giá tự động ngay & Khôi phục về giá tự động chuẩn */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <button
                   type="button"
                   onClick={onRefreshMarket}
                   disabled={isRefreshing}
-                  className="px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-red-800 border border-amber-300 text-xs font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-50 flex-shrink-0"
+                  className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-red-950 font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs cursor-pointer active:scale-98 transition-all disabled:opacity-50 border border-amber-300"
                 >
-                  <RefreshCw className={`w-3.5 h-3.5 text-red-700 ${isRefreshing ? 'animate-spin' : ''}`} />
-                  <span>{isRefreshing ? 'Đang lấy...' : 'Lấy Giá SJC'}</span>
+                  <RefreshCw className={`w-4 h-4 text-red-950 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  <span className="uppercase">
+                    {isRefreshing ? 'Đang cập nhật giá...' : 'Lấy Giá Tự Động Ngay'}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleResetAllToAuto}
+                  className="py-2.5 px-3 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-black text-xs flex items-center justify-center gap-1.5 border border-neutral-300 cursor-pointer active:scale-98 transition-all"
+                  title="Xóa mọi giá chỉnh tay bị kẹt và đưa toàn bộ bảng giá về giá chuẩn thị trường 100%"
+                >
+                  <Sparkles className="w-4 h-4 text-amber-600" />
+                  <span>Đồng Bộ Về Chuẩn Tự Động SJC</span>
                 </button>
               </div>
 
+              {/* Lựa chọn 3 Chế độ giá: Tự động 100% | Tự động + Chênh lệch | Thủ công */}
+              <div className="pt-2 border-t border-neutral-100">
+                <label className="text-[11px] font-black text-neutral-700 block mb-1.5 uppercase">
+                  Chế Độ Tính Giá Bảng TV:
+                </label>
+                <div className="grid grid-cols-3 gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const updated: StoreSettings = { ...localSettings, pricingMode: 'auto_market' };
+                      setLocalSettings(updated);
+                      onUpdateSettings(updated);
+                    }}
+                    className={`py-2 px-1.5 rounded-xl text-center text-xs font-black cursor-pointer transition-all border ${
+                      (localSettings.pricingMode || 'auto_market') === 'auto_market'
+                        ? 'bg-emerald-700 text-white border-emerald-800 shadow-2xs'
+                        : 'bg-neutral-50 hover:bg-neutral-100 text-neutral-700 border-neutral-200'
+                    }`}
+                  >
+                    <div className="text-[11px] leading-tight">🟢 Tự Động 100%</div>
+                    <div className="text-[9px] opacity-80 mt-0.5">Chuẩn giá SJC</div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const updated: StoreSettings = { ...localSettings, pricingMode: 'formula' };
+                      setLocalSettings(updated);
+                      onUpdateSettings(updated);
+                    }}
+                    className={`py-2 px-1.5 rounded-xl text-center text-xs font-black cursor-pointer transition-all border ${
+                      localSettings.pricingMode === 'formula'
+                        ? 'bg-amber-600 text-white border-amber-700 shadow-2xs'
+                        : 'bg-neutral-50 hover:bg-neutral-100 text-neutral-700 border-neutral-200'
+                    }`}
+                  >
+                    <div className="text-[11px] leading-tight">⚡ Tự Động + Tiệm</div>
+                    <div className="text-[9px] opacity-80 mt-0.5">Cộng/trừ chênh lệch</div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const updated: StoreSettings = { ...localSettings, pricingMode: 'custom_override' };
+                      setLocalSettings(updated);
+                      onUpdateSettings(updated);
+                    }}
+                    className={`py-2 px-1.5 rounded-xl text-center text-xs font-black cursor-pointer transition-all border ${
+                      localSettings.pricingMode === 'custom_override'
+                        ? 'bg-red-800 text-white border-red-900 shadow-2xs'
+                        : 'bg-neutral-50 hover:bg-neutral-100 text-neutral-700 border-neutral-200'
+                    }`}
+                  >
+                    <div className="text-[11px] leading-tight">✏️ Giá Tự Đặt</div>
+                    <div className="text-[9px] opacity-80 mt-0.5">Tiệm gõ thủ công</div>
+                  </button>
+                </div>
+              </div>
+
               {/* Bộ lọc thương hiệu */}
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+              <div className="flex items-center gap-1.5 overflow-x-auto pt-1 text-xs">
+                <span className="text-[11px] font-bold text-neutral-500 whitespace-nowrap">Lọc:</span>
                 {['ALL', 'SJC', 'PNJ', 'DOJI', 'AAA', 'TIỆM'].map((b) => (
                   <button
                     key={b}
                     type="button"
                     onClick={() => setBrandFilter(b)}
-                    className={`px-3 py-1 rounded-lg font-bold whitespace-nowrap cursor-pointer transition-all ${
+                    className={`px-2.5 py-1 rounded-lg font-bold whitespace-nowrap cursor-pointer transition-all ${
                       brandFilter === b
                         ? 'bg-red-800 text-white shadow-2xs'
                         : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
@@ -507,7 +620,11 @@ export const MobileAdmin: React.FC<MobileAdminProps> = ({
                 <div className="inline-flex rounded-xl bg-neutral-100 p-0.5 border border-neutral-200">
                   <button
                     type="button"
-                    onClick={() => setLocalSettings(prev => ({ ...prev, layoutMode: 'single_col' }))}
+                    onClick={() => {
+                      const updated: StoreSettings = { ...localSettings, layoutMode: 'single_col' };
+                      setLocalSettings(updated);
+                      onUpdateSettings(updated);
+                    }}
                     className={`px-3 py-1 rounded-lg font-black text-xs flex items-center gap-1 transition-all cursor-pointer ${
                       localSettings.layoutMode === 'single_col'
                         ? 'bg-red-800 text-white shadow-2xs'
@@ -519,7 +636,11 @@ export const MobileAdmin: React.FC<MobileAdminProps> = ({
                   </button>
                   <button
                     type="button"
-                    onClick={() => setLocalSettings(prev => ({ ...prev, layoutMode: 'two_col' }))}
+                    onClick={() => {
+                      const updated: StoreSettings = { ...localSettings, layoutMode: 'two_col' };
+                      setLocalSettings(updated);
+                      onUpdateSettings(updated);
+                    }}
                     className={`px-3 py-1 rounded-lg font-black text-xs flex items-center gap-1 transition-all cursor-pointer ${
                       localSettings.layoutMode !== 'single_col'
                         ? 'bg-red-800 text-white shadow-2xs'
@@ -753,27 +874,32 @@ export const MobileAdmin: React.FC<MobileAdminProps> = ({
 
                     </div>
 
-                    {/* Trạng thái & nút đặt lại giá tự động */}
-                    <div className="flex items-center justify-between text-[11px] pt-1">
-                      {isCustom ? (
-                        <div className="flex items-center gap-1.5 text-amber-800 font-bold">
-                          <span className="w-2 h-2 rounded-full bg-amber-500" />
-                          <span>Đang đặt giá riêng thủ công</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1.5 text-neutral-500 font-medium">
-                          <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                          <span>Tự động tính theo giá thị trường</span>
-                        </div>
-                      )}
+                    {/* Trạng thái & nút đặt lại giá tự động & Giá thị trường đối chiếu */}
+                    <div className="flex flex-wrap items-center justify-between gap-1 text-[11px] pt-1 border-t border-neutral-100">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {isCustom ? (
+                          <span className="inline-flex items-center gap-1 text-amber-800 font-bold bg-amber-100/80 px-2 py-0.5 rounded-md">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-600" />
+                            <span>Giá tiệm sửa tay</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-emerald-800 font-bold bg-emerald-100/80 px-2 py-0.5 rounded-md">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+                            <span>Tự động theo {item.brand}</span>
+                          </span>
+                        )}
+                        <span className="text-[10px] text-neutral-500 font-mono">
+                          (Gốc: Mua {Math.round(convertPriceByUnit(item.apiBuy, 'chi') / 1000).toLocaleString('vi-VN')}k / Bán {Math.round(convertPriceByUnit(item.apiSell, 'chi') / 1000).toLocaleString('vi-VN')}k)
+                        </span>
+                      </div>
 
                       {isCustom && (
                         <button
                           type="button"
                           onClick={() => handleResetToAuto(item.id)}
-                          className="text-xs text-red-700 hover:underline font-bold cursor-pointer"
+                          className="px-2 py-0.5 rounded bg-red-100 hover:bg-red-200 text-red-800 text-[11px] font-bold cursor-pointer transition-colors"
                         >
-                          Quay lại tự động SJC
+                          ↺ Trả về giá tự động
                         </button>
                       )}
                     </div>
