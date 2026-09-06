@@ -47,12 +47,25 @@ export interface StoreSettings {
   marqueeNotice: string;
   displayUnit: UnitType;
   
-  // Core Formula as requested by user:
-  // "thiết lập tỷ lệ phần trăm lãi cộng thêm vào giá mua từ API (ví dụ: 1%) và tỷ lệ phần trăm chênh lệch giữa giá mua và giá bán"
-  globalProfitOnBuyPercent: number; // Ví dụ: 1.0 = +1.0% cộng vào giá mua API
-  globalSpreadPercent: number; // Ví dụ: 2.0 = 2.0% chênh lệch giữa giá mua và bán
+  // Pricing calculation configuration:
+  // 1. calculationType: 'percent' (mua vào -%, bán ra +%) | 'amount_delta' (mua vào -tiền, bán ra +tiền ví dụ 16600 -> 16500) | 'custom_override'
+  calculationType: 'percent' | 'amount_delta' | 'custom_override';
+  
+  // When calculationType === 'percent':
+  buyDiscountPercent: number; // Mua vào trừ % so với thị trường, vd 0.8% (để tiệm có lãi)
+  sellMarginPercent: number; // Bán ra cộng % so với thị trường/mua vào, vd 1.5%
+
+  // When calculationType === 'amount_delta' (tiền chênh lệch tính theo nghìn VND/chỉ):
+  // Ví dụ: thị trường 16600, mua vào trừ 100k -> 16500; bán ra cộng 100k -> 16700
+  buyAmountDeltaPerChi: number; // Số tiền trừ khi mua vào (nghìn đồng/chỉ, vd: 100 = 100.000 đ/chỉ = 1.000.000 đ/lượng)
+  sellAmountDeltaPerChi: number; // Số tiền cộng khi bán ra (nghìn đồng/chỉ, vd: 100 = 100.000 đ/chỉ = 1.000.000 đ/lượng)
+
+  // Legacy fallback fields
+  globalProfitOnBuyPercent: number;
+  globalSpreadPercent: number;
   
   pricingMode: 'formula' | 'custom_override';
+  roundingRule?: 'round_up_step_5_10' | 'round_up_10' | 'round_none';
   autoSyncIntervalMinutes: number;
   lastSyncedAt: string;
   dataSourceName: string;
@@ -60,6 +73,8 @@ export interface StoreSettings {
   showTrendColumn: boolean;
   showSpreadColumn: boolean;
   tvFontSize?: 'normal' | 'large' | 'extralarge';
+  layoutMode?: 'two_col' | 'single_col';
+  priceDisplayFormat?: 'compact' | 'full';
 }
 
 export interface PublicRatesResponse {

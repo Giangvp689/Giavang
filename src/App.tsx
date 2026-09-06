@@ -30,7 +30,17 @@ export default function App() {
   const [settings, setSettings] = useState<StoreSettings>(() => {
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_SETTINGS_KEY);
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Overwrite old dummy address/phone if present
+        if (!parsed.address || parsed.address.includes('Số 88 Phố Vàng Bạc')) {
+          parsed.address = INITIAL_STORE_SETTINGS.address;
+        }
+        if (!parsed.phone || parsed.phone.includes('0988.666.888')) {
+          parsed.phone = INITIAL_STORE_SETTINGS.phone;
+        }
+        return parsed;
+      }
     } catch (e) {
       console.error('Error loading settings from localStorage:', e);
     }
@@ -198,97 +208,98 @@ export default function App() {
   };
 
   return (
-    <div className={`min-h-screen bg-neutral-100 text-neutral-900 flex flex-col selection:bg-red-600 selection:text-white ${
-      isFullscreen ? 'p-0 overflow-x-hidden' : ''
+    <div className={`min-h-screen bg-[#F8F9FA] text-neutral-900 flex flex-col selection:bg-red-600 selection:text-white ${
+      isFullscreen ? 'p-0 overflow-hidden' : ''
     }`}>
 
-      {/* Main Store Header (Only when NOT in Fullscreen TV mode) */}
-      {!isFullscreen && (
-        <Header
+      {activeTab === 'board' ? (
+        /* Full TV Board View (fits 100vh of TV screen without vertical overflow) */
+        <CustomerBoard
+          items={items}
           settings={settings}
-          activeTab={activeTab}
-          onSelectTab={setActiveTab}
           unit={unit}
           onChangeUnit={(u) => {
             setUnit(u);
             handleUpdateSettings({ ...settings, displayUnit: u });
           }}
-          onRefreshMarket={() => fetchMarketRates(true)}
-          isRefreshing={isRefreshing}
+          onUpdateItems={handleUpdateItems}
+          onUpdateSettings={handleUpdateSettings}
           isFullscreen={isFullscreen}
           onToggleFullscreen={toggleFullscreen}
+          onOpenAdmin={() => {
+            setIsFullscreen(false);
+            setActiveTab('admin');
+          }}
+          onOpenCalculator={() => {
+            setIsFullscreen(false);
+            setActiveTab('calculator');
+          }}
+          onRefreshMarket={() => fetchMarketRates(true)}
+          isRefreshing={isRefreshing}
         />
-      )}
-
-      {/* Main Content Area */}
-      <main className="flex-1 flex flex-col justify-start w-full">
-        {activeTab === 'board' && (
-          <CustomerBoard
-            items={items}
+      ) : (
+        /* Standard Pages (Calculator, Owner Admin Settings) with clean light header */
+        <>
+          <Header
             settings={settings}
+            activeTab={activeTab}
+            onSelectTab={setActiveTab}
             unit={unit}
             onChangeUnit={(u) => {
               setUnit(u);
               handleUpdateSettings({ ...settings, displayUnit: u });
             }}
-            isFullscreen={isFullscreen}
-            onToggleFullscreen={toggleFullscreen}
-            onOpenAdmin={() => {
-              setIsFullscreen(false);
-              setActiveTab('admin');
-            }}
-            onOpenCalculator={() => {
-              setIsFullscreen(false);
-              setActiveTab('calculator');
-            }}
-          />
-        )}
-
-        {activeTab === 'calculator' && (
-          <GoldCalculator
-            items={items}
-            settings={settings}
-            selectedItemInitial={calcSelectedItem}
-          />
-        )}
-
-        {activeTab === 'admin' && (
-          <OwnerAdmin
-            items={items}
-            settings={settings}
-            onUpdateItems={handleUpdateItems}
-            onUpdateSettings={handleUpdateSettings}
             onRefreshMarket={() => fetchMarketRates(true)}
             isRefreshing={isRefreshing}
+            isFullscreen={isFullscreen}
+            onToggleFullscreen={toggleFullscreen}
           />
-        )}
-      </main>
 
-      {/* Persistent Footer */}
-      {!isFullscreen && (
-        <footer className="bg-white border-t border-neutral-300 py-3.5 text-xs text-neutral-600">
-          <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <span className="font-extrabold text-red-700 font-serif uppercase">{settings.storeName}</span>
-              <span>• Hệ thống Bảng Giá Vàng Điện Tử Chiếu TV Cho Khách</span>
-            </div>
+          <main className="flex-1 w-full max-w-7xl mx-auto p-4 sm:p-6">
+            {activeTab === 'calculator' && (
+              <GoldCalculator
+                items={items}
+                settings={settings}
+                selectedItemInitial={calcSelectedItem}
+              />
+            )}
 
-            <div className="flex items-center gap-3">
-              <span className="flex items-center gap-1 text-emerald-700 font-semibold">
-                <Radio className="w-3.5 h-3.5 text-emerald-600" />
-                API Thời Gian Thực: SJC • PNJ • DOJI • AAA
-              </span>
-              <span>•</span>
-              <button
-                type="button"
-                onClick={() => setActiveTab('admin')}
-                className="text-red-700 hover:underline font-bold cursor-pointer"
-              >
-                Cài Đặt % Lãi & Giá Bán
-              </button>
+            {activeTab === 'admin' && (
+              <OwnerAdmin
+                items={items}
+                settings={settings}
+                onUpdateItems={handleUpdateItems}
+                onUpdateSettings={handleUpdateSettings}
+                onRefreshMarket={() => fetchMarketRates(true)}
+                isRefreshing={isRefreshing}
+              />
+            )}
+          </main>
+
+          <footer className="bg-white border-t border-neutral-200 py-3 text-xs text-neutral-600">
+            <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="font-extrabold text-red-700 font-serif uppercase">{settings.storeName}</span>
+                <span>• Hệ thống Bảng Giá Vàng Điện Tử Chiếu TV Cho Khách</span>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <span className="flex items-center gap-1 text-emerald-700 font-semibold">
+                  <Radio className="w-3.5 h-3.5 text-emerald-600" />
+                  API Thời Gian Thực: SJC • PNJ • DOJI • AAA
+                </span>
+                <span>•</span>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('board')}
+                  className="text-red-700 hover:underline font-bold cursor-pointer"
+                >
+                  Xem Bảng Giá TV
+                </button>
+              </div>
             </div>
-          </div>
-        </footer>
+          </footer>
+        </>
       )}
 
     </div>

@@ -79,34 +79,45 @@ export const OwnerAdmin: React.FC<OwnerAdminProps> = ({
     }, 3500);
   };
 
-  // Update item field
+  // Update item field and auto-sync
   const updateItemField = (id: string, field: keyof GoldItem, value: any) => {
-    setLocalItems(prev => prev.map(item => {
-      if (item.id === id) {
-        return { ...item, [field]: value };
-      }
-      return item;
-    }));
+    setLocalItems(prev => {
+      const updated = prev.map(item => {
+        if (item.id === id) {
+          return { ...item, [field]: value };
+        }
+        return item;
+      });
+      onUpdateItems(updated);
+      return updated;
+    });
   };
 
-  // Toggle item visibility
+  // Toggle item visibility and auto-sync
   const toggleItemVisibility = (id: string) => {
-    setLocalItems(prev => prev.map(item => {
-      if (item.id === id) {
-        return { ...item, visible: !item.visible };
-      }
-      return item;
-    }));
+    setLocalItems(prev => {
+      const updated = prev.map(item => {
+        if (item.id === id) {
+          return { ...item, visible: !item.visible };
+        }
+        return item;
+      });
+      onUpdateItems(updated);
+      return updated;
+    });
   };
 
-  // Delete item
+  // Delete item with immediate auto-sync (No blocking window.confirm in iframe)
   const handleDeleteItem = (id: string) => {
-    if (confirm('Bạn có chắc chắn muốn xóa loại vàng này khỏi danh sách?')) {
-      setLocalItems(prev => prev.filter(item => item.id !== id));
-    }
+    const itemToDelete = localItems.find(i => i.id === id);
+    const updated = localItems.filter(item => item.id !== id);
+    setLocalItems(updated);
+    onUpdateItems(updated);
+    setSavedNotification(true);
+    setTimeout(() => setSavedNotification(false), 3000);
   };
 
-  // Add new custom item
+  // Add new custom item with immediate auto-sync
   const handleAddNewItem = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newItemName.trim()) return;
@@ -135,10 +146,14 @@ export const OwnerAdmin: React.FC<OwnerAdminProps> = ({
       note: newItemNote.trim()
     };
 
-    setLocalItems(prev => [...prev, newItem]);
+    const updated = [...localItems, newItem];
+    setLocalItems(updated);
+    onUpdateItems(updated);
     setShowAddModal(false);
     setNewItemName('');
     setNewItemNote('');
+    setSavedNotification(true);
+    setTimeout(() => setSavedNotification(false), 3000);
   };
 
   // Presets for owner quick click
@@ -250,24 +265,129 @@ export const OwnerAdmin: React.FC<OwnerAdminProps> = ({
         </div>
       </div>
 
-      {/* SECTION 1: CORE OWNER FORMULA (User's Exact Requested Feature) */}
-      <div className="bg-white border-2 border-red-600 rounded-2xl p-4 sm:p-6 shadow-sm">
-        <div className="flex items-center gap-2.5 mb-2">
-          <div className="w-9 h-9 rounded-xl bg-red-600 text-white flex items-center justify-center font-bold">
-            <Percent className="w-5 h-5 text-yellow-300" />
+      {/* SECTION 1: CORE OWNER FORMULA & PRICING MODE */}
+      <div className="bg-white border-2 border-red-600 rounded-2xl p-4 sm:p-6 shadow-sm space-y-4">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 border-b border-neutral-200 pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-red-600 text-white flex items-center justify-center font-bold">
+              <Percent className="w-5 h-5 text-yellow-300" />
+            </div>
+            <div>
+              <h3 className="text-base sm:text-lg font-black text-red-800 font-serif">
+                1. Chế Độ Định Giá & Công Thức Tính Lãi
+              </h3>
+              <p className="text-xs text-neutral-600">
+                Lựa chọn tính giá tự động theo % từ API hoặc tự nhập trực tiếp giá lên bảng hiển thị.
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-base sm:text-lg font-black text-red-800 font-serif">
-              1. Công Thức Tính Giá Tự Động Cho Toàn Tiệm
-            </h3>
-            <p className="text-xs text-neutral-600">
-              Hệ thống tự động lấy giá gốc từ API (SJC, PNJ, DOJI, AAA), cộng thêm % lãi và áp dụng % chênh lệch mua bán để ra giá niêm yết cuối cùng cho khách.
-            </p>
+
+          {/* Pricing Mode Switcher */}
+          <div className="flex items-center bg-neutral-100 p-1 rounded-xl border border-neutral-300 text-xs font-black">
+            <button
+              type="button"
+              onClick={() => {
+                const updated = { ...localSettings, pricingMode: 'formula' as const };
+                setLocalSettings(updated);
+                onUpdateSettings(updated);
+              }}
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                localSettings.pricingMode === 'formula'
+                  ? 'bg-red-700 text-white shadow-xs'
+                  : 'text-neutral-700 hover:text-neutral-900'
+              }`}
+            >
+              Chỉnh theo % Lãi API
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const updated = { ...localSettings, pricingMode: 'custom_override' as const };
+                setLocalSettings(updated);
+                onUpdateSettings(updated);
+              }}
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                localSettings.pricingMode === 'custom_override'
+                  ? 'bg-red-700 text-white shadow-xs'
+                  : 'text-neutral-700 hover:text-neutral-900'
+              }`}
+            >
+              Tự nhập giá lên bảng
+            </button>
+          </div>
+        </div>
+
+        {/* Rounding Rule Selector (Yêu cầu làm tròn hàng chục nghìn: 14897 -> 14900, 5 giữ nguyên, dưới 5 lên 5) */}
+        <div className="bg-amber-50 border border-amber-300/80 rounded-xl p-3.5 sm:p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+            <span className="text-xs sm:text-sm font-black text-amber-950 flex items-center gap-1.5">
+              <Sparkles className="w-4 h-4 text-amber-700" />
+              Quy Tắc Làm Tròn Giá Bán (Hàng Chục Nghìn)
+            </span>
+            <span className="text-[11px] text-amber-800 font-bold bg-amber-200/80 px-2 py-0.5 rounded-md">
+              Áp dụng lên bảng giá TV
+            </span>
+          </div>
+          <p className="text-xs text-amber-900 mb-3 leading-relaxed">
+            Ví dụ: Giá <strong>14.897</strong> nghìn thì làm tròn lên <strong>14.900</strong>. Nếu ở số <strong>5</strong> thì giữ nguyên, còn dưới 5 cũng làm tròn lên 5.
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                const updated = { ...localSettings, roundingRule: 'round_up_step_5_10' as const };
+                setLocalSettings(updated);
+                onUpdateSettings(updated);
+              }}
+              className={`px-3 py-2 rounded-xl text-xs font-bold text-left transition-all border cursor-pointer ${
+                (localSettings.roundingRule || 'round_up_step_5_10') === 'round_up_step_5_10'
+                  ? 'bg-red-700 text-white border-red-800 shadow-xs ring-2 ring-red-600/30'
+                  : 'bg-white text-neutral-800 border-amber-300 hover:bg-amber-100/60'
+              }`}
+            >
+              <div className="font-black">Làm tròn bước 5 - 10</div>
+              <div className="text-[10px] opacity-85 mt-0.5">14897 &rarr; 14900 (Chuẩn tiệm)</div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                const updated = { ...localSettings, roundingRule: 'round_up_10' as const };
+                setLocalSettings(updated);
+                onUpdateSettings(updated);
+              }}
+              className={`px-3 py-2 rounded-xl text-xs font-bold text-left transition-all border cursor-pointer ${
+                localSettings.roundingRule === 'round_up_10'
+                  ? 'bg-red-700 text-white border-red-800 shadow-xs ring-2 ring-red-600/30'
+                  : 'bg-white text-neutral-800 border-amber-300 hover:bg-amber-100/60'
+              }`}
+            >
+              <div className="font-black">Làm tròn chẵn 10.000 đ</div>
+              <div className="text-[10px] opacity-85 mt-0.5">Làm tròn lên hàng chục nghìn</div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                const updated = { ...localSettings, roundingRule: 'round_none' as const };
+                setLocalSettings(updated);
+                onUpdateSettings(updated);
+              }}
+              className={`px-3 py-2 rounded-xl text-xs font-bold text-left transition-all border cursor-pointer ${
+                localSettings.roundingRule === 'round_none'
+                  ? 'bg-red-700 text-white border-red-800 shadow-xs ring-2 ring-red-600/30'
+                  : 'bg-white text-neutral-800 border-amber-300 hover:bg-amber-100/60'
+              }`}
+            >
+              <div className="font-black">Không làm tròn</div>
+              <div className="text-[10px] opacity-85 mt-0.5">Giữ nguyên số tính toán lẻ</div>
+            </button>
           </div>
         </div>
 
         {/* Formula Visual Box */}
-        <div className="bg-neutral-50 border border-neutral-200 rounded-xl p-3 sm:p-4 my-4 flex flex-col md:flex-row items-center justify-around gap-3 text-xs sm:text-sm">
+        <div className="bg-neutral-50 border border-neutral-200 rounded-xl p-3 sm:p-4 my-2 flex flex-col md:flex-row items-center justify-around gap-3 text-xs sm:text-sm">
           <div className="text-center">
             <span className="text-neutral-500 font-medium block">Giá Mua Gốc từ API</span>
             <span className="font-mono font-bold text-neutral-800 text-sm">88.500.000 đ</span>
@@ -279,9 +399,9 @@ export const OwnerAdmin: React.FC<OwnerAdminProps> = ({
             <ArrowRight className="w-4 h-4 hidden md:inline" />
           </div>
 
-          <div className="text-center bg-emerald-50 border border-emerald-300 px-3 py-1.5 rounded-lg">
-            <span className="text-emerald-700 font-medium block text-xs">Giá Tiệm Mua Vào</span>
-            <span className="font-mono font-black text-emerald-800 text-sm">
+          <div className="text-center bg-white border border-neutral-300 px-3 py-1.5 rounded-lg shadow-2xs">
+            <span className="text-blue-700 font-medium block text-xs">Giá Tiệm Mua Vào</span>
+            <span className="font-mono font-black text-blue-800 text-sm">
               {formatVnd(Math.round(88500000 * (1 + localSettings.globalProfitOnBuyPercent / 100) / 10000) * 10000)} đ
             </span>
           </div>
@@ -292,7 +412,7 @@ export const OwnerAdmin: React.FC<OwnerAdminProps> = ({
             <ArrowRight className="w-4 h-4 hidden md:inline" />
           </div>
 
-          <div className="text-center bg-red-50 border border-red-300 px-3 py-1.5 rounded-lg">
+          <div className="text-center bg-white border border-neutral-300 px-3 py-1.5 rounded-lg shadow-2xs">
             <span className="text-red-700 font-medium block text-xs">Giá Tiệm Bán Ra Cho Khách</span>
             <span className="font-mono font-black text-red-700 text-sm">
               {formatVnd(Math.round(Math.round(88500000 * (1 + localSettings.globalProfitOnBuyPercent / 100) / 10000) * 10000 * (1 + localSettings.globalSpreadPercent / 100) / 10000) * 10000)} đ
@@ -522,39 +642,48 @@ export const OwnerAdmin: React.FC<OwnerAdminProps> = ({
 
                     {/* Pricing Mode Toggle */}
                     <td className="py-3 px-3">
-                      <div className="flex flex-col gap-1">
-                        <label className="inline-flex items-center gap-1.5 text-xs cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={!!item.useCustomPrice}
-                            onChange={(e) => updateItemField(item.id, 'useCustomPrice', e.target.checked)}
-                            className="rounded accent-red-600 cursor-pointer"
-                          />
-                          <span className={item.useCustomPrice ? "text-red-700 font-bold" : "text-neutral-600"}>
-                            Tự nhập giá cố định
-                          </span>
-                        </label>
+                      {localSettings.pricingMode === 'custom_override' ? (
+                        <span className="inline-block px-2 py-0.5 rounded bg-red-100 text-red-800 font-bold text-xs">
+                          Tự nhập theo chế độ chung
+                        </span>
+                      ) : (
+                        <div className="flex flex-col gap-1">
+                          <label className="inline-flex items-center gap-1.5 text-xs cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={!!item.useCustomPrice}
+                              onChange={(e) => updateItemField(item.id, 'useCustomPrice', e.target.checked)}
+                              className="rounded accent-red-600 cursor-pointer"
+                            />
+                            <span className={item.useCustomPrice ? "text-red-700 font-bold" : "text-neutral-600"}>
+                              Tự nhập giá cố định
+                            </span>
+                          </label>
 
-                        {!item.useCustomPrice && (
-                          <span className="text-[11px] text-neutral-500">
-                            Theo công thức tiệm (+{localSettings.globalProfitOnBuyPercent}% mua, {localSettings.globalSpreadPercent}% bán)
-                          </span>
-                        )}
-                      </div>
+                          {!item.useCustomPrice && (
+                            <span className="text-[11px] text-neutral-500">
+                              Theo % (+{localSettings.globalProfitOnBuyPercent}% mua, {localSettings.globalSpreadPercent}% bán)
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </td>
 
                     {/* Final Buy Price */}
                     <td className="py-3 px-3 text-right">
-                      {item.useCustomPrice ? (
-                        <input
-                          type="number"
-                          step="10000"
-                          value={item.customBuy || finalBuy}
-                          onChange={(e) => updateItemField(item.id, 'customBuy', parseFloat(e.target.value) || 0)}
-                          className="w-28 bg-emerald-50 border border-emerald-300 rounded px-2 py-1 text-right text-emerald-800 font-mono font-black text-xs"
-                        />
+                      {(item.useCustomPrice || localSettings.pricingMode === 'custom_override') ? (
+                        <div className="flex items-center justify-end gap-1">
+                          <input
+                            type="number"
+                            step="10000"
+                            value={item.customBuy ?? finalBuy}
+                            onChange={(e) => updateItemField(item.id, 'customBuy', parseFloat(e.target.value) || 0)}
+                            className="w-32 bg-white border-2 border-emerald-500 rounded-lg px-2 py-1 text-right text-emerald-800 font-mono font-black text-xs shadow-xs focus:ring-2 focus:ring-emerald-400 focus:outline-none"
+                          />
+                          <span className="text-[10px] text-neutral-500 font-bold">đ</span>
+                        </div>
                       ) : (
-                        <div className="font-mono font-black text-emerald-700 text-sm">
+                        <div className="font-mono font-black text-blue-700 text-sm">
                           {formatVnd(finalBuy)} đ
                         </div>
                       )}
@@ -562,14 +691,17 @@ export const OwnerAdmin: React.FC<OwnerAdminProps> = ({
 
                     {/* Final Sell Price */}
                     <td className="py-3 px-3 text-right">
-                      {item.useCustomPrice ? (
-                        <input
-                          type="number"
-                          step="10000"
-                          value={item.customSell || finalSell}
-                          onChange={(e) => updateItemField(item.id, 'customSell', parseFloat(e.target.value) || 0)}
-                          className="w-28 bg-red-50 border border-red-300 rounded px-2 py-1 text-right text-red-700 font-mono font-black text-xs"
-                        />
+                      {(item.useCustomPrice || localSettings.pricingMode === 'custom_override') ? (
+                        <div className="flex items-center justify-end gap-1">
+                          <input
+                            type="number"
+                            step="10000"
+                            value={item.customSell ?? finalSell}
+                            onChange={(e) => updateItemField(item.id, 'customSell', parseFloat(e.target.value) || 0)}
+                            className="w-32 bg-white border-2 border-red-500 rounded-lg px-2 py-1 text-right text-red-700 font-mono font-black text-xs shadow-xs focus:ring-2 focus:ring-red-400 focus:outline-none"
+                          />
+                          <span className="text-[10px] text-neutral-500 font-bold">đ</span>
+                        </div>
                       ) : (
                         <div className="font-mono font-black text-red-600 text-sm">
                           {formatVnd(finalSell)} đ
@@ -582,8 +714,8 @@ export const OwnerAdmin: React.FC<OwnerAdminProps> = ({
                       <button
                         type="button"
                         onClick={() => handleDeleteItem(item.id)}
-                        title="Xóa loại vàng này"
-                        className="p-1 rounded text-neutral-400 hover:text-red-600 transition-colors cursor-pointer"
+                        title={`Xóa loại vàng ${item.name}`}
+                        className="p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-600 hover:text-white transition-all cursor-pointer shadow-2xs"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>

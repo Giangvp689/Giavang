@@ -350,19 +350,31 @@ export const INITIAL_GOLD_ITEMS: GoldItem[] = [
 
 export const INITIAL_STORE_SETTINGS: StoreSettings = {
   storeName: "TIỆM VÀNG ĐỨC KỲ",
-  slogan: "UY TÍN TẠO THƯƠNG HIỆU - GIÁ CẢ MINH BẠCH - ĐÚNG TUỔI ĐỦ TRỌNG LƯỢNG",
-  phone: "0988.666.888 - 024.3888.9999",
-  address: "Số 88 Phố Vàng Bạc, Hoàn Kiếm, Hà Nội",
-  marqueeNotice: "TIỆM VÀNG ĐỨC KỲ KÍNH CHÀO QUÝ KHÁCH • BẢNG GIÁ ĐỒNG BỘ TRỰC TIẾP TỪ THỊ TRƯỜNG TOÀN QUỐC (SJC, PNJ, DOJI, AAA) • CAM KẾT VÀNG ĐÚNG TUỔI 100% • THU MUA VÀ THU ĐỔI VÀNG CŨ GIÁ TỐT NHẤT.",
-  displayUnit: "chi", // Default in "chỉ" as preferred for customer viewing
-  globalProfitOnBuyPercent: 1.0, // Default +1.0% added to API buy price as requested by user!
-  globalSpreadPercent: 2.0, // Default 2.0% spread between buy and sell
+  slogan: "CHỮ TÍN QUÝ HƠN VÀNG",
+  phone: "0985061955",
+  address: "2C Lê Quý Đôn - Sơn Tây - Hà Nội",
+  marqueeNotice: "TIỆM VÀNG ĐỨC KỲ KÍNH CHÀO QUÝ KHÁCH • ĐỊA CHỈ: 2C LÊ QUÝ ĐÔN - SƠN TÂY - HÀ NỘI • ĐT: 0985061955 • BẢNG GIÁ ĐỒNG BỘ TRỰC TIẾP TỪ THỊ TRƯỜNG TOÀN QUỐC (SJC, PNJ, DOJI, AAA) • CAM KẾT VÀNG ĐÚNG TUỔI 100% • THU MUA VÀ THU ĐỔI VÀNG CŨ GIÁ TỐT NHẤT.",
+  displayUnit: "chi",
+  
+  // Định giá: 'amount_delta' (Nhập tiền chênh lệch) hoặc 'percent' (Nhập % chiết khấu/lợi nhuận)
+  calculationType: "amount_delta",
+  buyAmountDeltaPerChi: 100, // Trừ 100 nghìn/chỉ khi mua vào (ví dụ thị trường 16600 -> mua vào 16500)
+  sellAmountDeltaPerChi: 100, // Cộng 100 nghìn/chỉ khi bán ra (ví dụ thị trường 16600 -> bán ra 16700)
+  
+  buyDiscountPercent: 0.8, // Trừ 0.8% khi mua vào
+  sellMarginPercent: 1.5, // Cộng 1.5% khi bán ra
+  
+  globalProfitOnBuyPercent: 1.0,
+  globalSpreadPercent: 2.0,
   pricingMode: "formula",
+  roundingRule: "round_up_step_5_10",
   autoSyncIntervalMinutes: 10,
   lastSyncedAt: new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
   dataSourceName: "API Thị Trường Trực Tiếp (SJC, PNJ, DOJI, AAA)",
   adminPin: "1234",
   showTrendColumn: true,
   showSpreadColumn: true,
-  tvFontSize: "large"
+  tvFontSize: "large",
+  layoutMode: "two_col",
+  priceDisplayFormat: "compact"
 };
