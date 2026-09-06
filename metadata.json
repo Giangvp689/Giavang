@@ -1,0 +1,6 @@
+{
+  "name": "Tiệm Vàng Đức Kỳ - Bảng Giá Vàng Điện Tử TV",
+  "description": "Bảng giá vàng điện tử thông minh cho Tiệm Vàng Đức Kỳ trên nền trắng sáng và sắc đỏ truyền thống, tối ưu màn hình TV cho khách xem giá, tích hợp API giá vàng SJC, PNJ, DOJI, AAA theo thời gian thực và tự động tính lãi, chênh lệch mua bán.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
