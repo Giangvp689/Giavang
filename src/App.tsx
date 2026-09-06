@@ -3,14 +3,22 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Header } from './components/Header';
 import { CustomerBoard } from './components/CustomerBoard';
 import { OwnerAdmin } from './components/OwnerAdmin';
 import { GoldCalculator } from './components/GoldCalculator';
+import { PinModal } from './components/PinModal';
 import { GoldItem, StoreSettings, UnitType, PublicRatesResponse } from './types';
 import { INITIAL_GOLD_ITEMS, INITIAL_STORE_SETTINGS } from './data/defaultData';
-import { Tv, Sparkles, X, Radio, Clock } from 'lucide-react';
+import { 
+  subscribeToStoreConfig, 
+  saveStoreConfigToFirebase, 
+  fetchStoreConfigFromFirebase,
+  subscribeToMarketRates 
+} from './firebase';
+import { getLiveMarketRates } from './utils/marketRatesService';
+import { Tv, Sparkles, X, Radio, Clock, Wifi } from 'lucide-react';
 
 const LOCAL_STORAGE_ITEMS_KEY = 'tiem_vang_ducky_items_v1';
 const LOCAL_STORAGE_SETTINGS_KEY = 'tiem_vang_ducky_settings_v1';
@@ -52,20 +60,40 @@ export default function App() {
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [calcSelectedItem, setCalcSelectedItem] = useState<GoldItem | null>(null);
+  const [isFirebaseConnected, setIsFirebaseConnected] = useState<boolean>(false);
+  const [lastSyncTime, setLastSyncTime] = useState<string>('');
 
-  // Sync settings & items to backend server and localStorage
+  // Keep ref to avoid stale state in callbacks
+  const isUpdatingFromRemoteRef = useRef<boolean>(false);
+
+  // Sync settings & items to Firebase, backend server and localStorage
   const persistState = useCallback(async (newItems: GoldItem[], newSettings: StoreSettings) => {
     try {
       localStorage.setItem(LOCAL_STORAGE_ITEMS_KEY, JSON.stringify(newItems));
       localStorage.setItem(LOCAL_STORAGE_SETTINGS_KEY, JSON.stringify(newSettings));
 
-      await fetch('/api/store/settings', {
+      // 1. Primary: Save directly to Firebase Firestore for real-time sync across TV & Mobile
+      const isMobileDevice = typeof window !== 'undefined' && window.innerWidth < 768;
+      const success = await saveStoreConfigToFirebase(
+        newItems, 
+        newSettings, 
+        isMobileDevice ? 'mobile_admin' : 'desktop_tv'
+      );
+      if (success) {
+        setIsFirebaseConnected(true);
+        setLastSyncTime(new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+      }
+
+      // 2. Secondary: Fallback to local Express API if running
+      fetch('/api/store/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ items: newItems, settings: newSettings })
+      }).catch(() => {
+        // Silently ignore if static hosting like Vercel
       });
     } catch (e) {
-      // Fallback works with localStorage
+      console.error('Error persisting state:', e);
     }
   }, []);
 
@@ -73,45 +101,43 @@ export default function App() {
   const fetchMarketRates = useCallback(async (showIndicator = true) => {
     if (showIndicator) setIsRefreshing(true);
     try {
-      const res = await fetch('/api/gold/public-rates');
-      if (res.ok) {
-        const data: PublicRatesResponse = await res.json();
-        if (data && data.rates && data.rates.length > 0) {
-          setItems(prevItems => {
-            const updated = prevItems.map(item => {
-              // Find matching market rate by id or exact match
-              const match = data.rates.find(r => 
-                r.id === item.id || 
-                (r.brand === item.brand && r.name.toLowerCase() === item.name.toLowerCase())
-              );
+      // Use robust multi-source service that works on both local container and Vercel/GitHub
+      const data = await getLiveMarketRates();
+      if (data && data.rates && data.rates.length > 0) {
+        setItems(prevItems => {
+          const updated = prevItems.map(item => {
+            // Find matching market rate by id or exact match
+            const match = data.rates.find(r => 
+              r.id === item.id || 
+              (r.brand === item.brand && r.name.toLowerCase() === item.name.toLowerCase())
+            );
 
-              if (match) {
-                return {
-                  ...item,
-                  apiBuy: match.buy,
-                  apiSell: match.sell,
-                  baseBuy: match.buy,
-                  baseSell: match.sell,
-                  prevDayBuy: match.prevDayBuy || (match.buy - (match.changeAmount || 0)),
-                  prevDaySell: match.prevDaySell || (match.sell - (match.changeAmount || 0)),
-                  trend: match.trend || item.trend,
-                  changeAmount: match.changeAmount ?? item.changeAmount
-                };
-              }
-              return item;
-            });
-
-            const newSettings: StoreSettings = {
-              ...settings,
-              lastSyncedAt: data.timestamp || new Date().toLocaleTimeString('vi-VN'),
-              dataSourceName: data.source || settings.dataSourceName
-            };
-
-            setSettings(newSettings);
-            persistState(updated, newSettings);
-            return updated;
+            if (match) {
+              return {
+                ...item,
+                apiBuy: match.buy,
+                apiSell: match.sell,
+                baseBuy: match.buy,
+                baseSell: match.sell,
+                prevDayBuy: match.prevDayBuy || (match.buy - (match.changeAmount || 0)),
+                prevDaySell: match.prevDaySell || (match.sell - (match.changeAmount || 0)),
+                trend: match.trend || item.trend,
+                changeAmount: match.changeAmount ?? item.changeAmount
+              };
+            }
+            return item;
           });
-        }
+
+          const newSettings: StoreSettings = {
+            ...settings,
+            lastSyncedAt: data.timestamp || new Date().toLocaleTimeString('vi-VN'),
+            dataSourceName: data.source || settings.dataSourceName
+          };
+
+          setSettings(newSettings);
+          persistState(updated, newSettings);
+          return updated;
+        });
       }
     } catch (err) {
       console.warn('Could not fetch market rates, relying on active rates:', err);
@@ -122,33 +148,91 @@ export default function App() {
     }
   }, [settings, persistState]);
 
-  // Load saved configuration from server on initial load
+  // Firebase Real-time Listener: Updates instantly when any device (e.g. mobile phone) changes prices or settings!
   useEffect(() => {
-    async function loadServerConfig() {
+    let unsubscribeStore: (() => void) | undefined;
+    let unsubscribeRates: (() => void) | undefined;
+
+    // 1. Initial load from Firestore or seed if empty
+    async function initFirebaseData() {
       try {
-        const res = await fetch('/api/store/settings');
-        if (res.ok) {
-          const data = await res.json();
-          if (data && data.settings) {
-            if (data.settings.items && Array.isArray(data.settings.items) && data.settings.items.length > 0) {
-              setItems(data.settings.items);
-            }
-            if (data.settings.settings) {
-              setSettings(data.settings.settings);
-              if (data.settings.settings.displayUnit) {
-                setUnit(data.settings.settings.displayUnit);
-              }
+        const cloudData = await fetchStoreConfigFromFirebase();
+        if (cloudData && cloudData.items && cloudData.items.length > 0) {
+          isUpdatingFromRemoteRef.current = true;
+          setItems(cloudData.items);
+          if (cloudData.settings) {
+            setSettings(cloudData.settings);
+            if (cloudData.settings.displayUnit) {
+              setUnit(cloudData.settings.displayUnit);
             }
           }
+          setIsFirebaseConnected(true);
+          isUpdatingFromRemoteRef.current = false;
+        } else {
+          // Initialize empty Firestore with current items & settings
+          saveStoreConfigToFirebase(items, settings, 'initial_seed')
+            .then(() => setIsFirebaseConnected(true))
+            .catch(() => {});
         }
-      } catch (e) {
-        // Use local state
+      } catch (err) {
+        console.warn('Firebase initial load fallback:', err);
       }
-      // Then fetch real-time market live rates
+
+      // Also trigger initial live market rates check
       fetchMarketRates(false);
     }
 
-    loadServerConfig();
+    initFirebaseData();
+
+    // 2. Real-time subscription to store configuration
+    unsubscribeStore = subscribeToStoreConfig(
+      (data) => {
+        setIsFirebaseConnected(true);
+        if (data.items && Array.isArray(data.items) && data.items.length > 0) {
+          setItems(data.items);
+        }
+        if (data.settings) {
+          setSettings(data.settings);
+          if (data.settings.displayUnit) {
+            setUnit(data.settings.displayUnit);
+          }
+        }
+        setLastSyncTime(new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }));
+      },
+      (err) => {
+        console.warn('[Firebase] Connection status:', err);
+      }
+    );
+
+    // 3. Real-time subscription to market rates synced by any client
+    unsubscribeRates = subscribeToMarketRates((ratesData) => {
+      if (ratesData && ratesData.rates && ratesData.rates.length > 0) {
+        setItems(prevItems => {
+          return prevItems.map(item => {
+            const match = ratesData.rates.find(r => r.id === item.id);
+            if (match) {
+              return {
+                ...item,
+                apiBuy: match.buy,
+                apiSell: match.sell,
+                baseBuy: match.buy,
+                baseSell: match.sell,
+                prevDayBuy: match.prevDayBuy || (match.buy - (match.changeAmount || 0)),
+                prevDaySell: match.prevDaySell || (match.sell - (match.changeAmount || 0)),
+                trend: match.trend || item.trend,
+                changeAmount: match.changeAmount ?? item.changeAmount
+              };
+            }
+            return item;
+          });
+        });
+      }
+    });
+
+    return () => {
+      if (unsubscribeStore) unsubscribeStore();
+      if (unsubscribeRates) unsubscribeRates();
+    };
   }, []);
 
   // Periodic auto-sync based on store settings (e.g. every 15 minutes)
@@ -236,6 +320,8 @@ export default function App() {
           }}
           onRefreshMarket={() => fetchMarketRates(true)}
           isRefreshing={isRefreshing}
+          isFirebaseConnected={isFirebaseConnected}
+          lastSyncedTime={lastSyncTime}
         />
       ) : (
         /* Standard Pages (Calculator, Owner Admin Settings) with clean light header */

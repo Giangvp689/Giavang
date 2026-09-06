@@ -1,0 +1,15 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Tiệm vàng Đức Kỳ - Realtime sync for TV display, Mobile Admin, and Market Rates
+    match /store_configs/{configId} {
+      allow read, write: if true;
+    }
+    match /market_rates/{rateId} {
+      allow read, write: if true;
+    }
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}

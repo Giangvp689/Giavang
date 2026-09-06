@@ -2,74 +2,85 @@ import React, { useState } from 'react';
 import { 
   Save, 
   RefreshCw, 
-  Percent, 
   Plus, 
   Trash2, 
   Eye, 
   EyeOff, 
   Lock, 
-  Unlock, 
   CheckCircle2, 
-  AlertCircle, 
   Store, 
   Layers, 
   ArrowRight,
   TrendingUp,
   Sparkles,
-  Calculator
+  Calculator,
+  Tv,
+  Coins,
+  Settings,
+  Sliders,
+  DollarSign,
+  Info,
+  Phone,
+  MapPin,
+  Clock,
+  Radio
 } from 'lucide-react';
-import { GoldItem, StoreSettings } from '../types';
-import { calculateStorePrices, formatVnd } from '../utils/goldMath';
+import { GoldItem, StoreSettings, UnitType } from '../types';
+import { calculateStorePrices, formatVnd, convertPriceByUnit } from '../utils/goldMath';
 
 interface OwnerAdminProps {
   items: GoldItem[];
   settings: StoreSettings;
+  unit: UnitType;
+  onChangeUnit: (unit: UnitType) => void;
   onUpdateItems: (items: GoldItem[]) => void;
   onUpdateSettings: (settings: StoreSettings) => void;
   onRefreshMarket: () => void;
   isRefreshing: boolean;
+  onBackToBoard: () => void;
+  isFirebaseConnected?: boolean;
+  lastSyncedTime?: string;
+  onOpenCalculator?: () => void;
+  onLockAdmin?: () => void;
 }
 
 export const OwnerAdmin: React.FC<OwnerAdminProps> = ({
   items,
   settings,
+  unit,
+  onChangeUnit,
   onUpdateItems,
   onUpdateSettings,
   onRefreshMarket,
-  isRefreshing
+  isRefreshing,
+  onBackToBoard,
+  isFirebaseConnected = false,
+  lastSyncedTime = '',
+  onOpenCalculator,
+  onLockAdmin
 }) => {
-  // Authentication PIN protection (Default: 1234)
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [pinInput, setPinInput] = useState<string>('');
-  const [pinError, setPinError] = useState<string>('');
+  // Navigation tabs in Admin
+  const [adminTab, setAdminTab] = useState<'pricing' | 'items' | 'store'>('pricing');
 
-  // Editable local states
+  // Local state copy for instant editing & preview before saving
   const [localSettings, setLocalSettings] = useState<StoreSettings>(settings);
   const [localItems, setLocalItems] = useState<GoldItem[]>(items);
   const [savedNotification, setSavedNotification] = useState<boolean>(false);
 
-  // New Gold Item Modal state
+  // New item modal
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
-  const [newItemName, setNewItemName] = useState<string>('');
-  const [newItemPurity, setNewItemPurity] = useState<string>('99.99%');
-  const [newItemBrand, setNewItemBrand] = useState<'SJC' | 'PNJ' | 'DOJI' | 'AAA' | 'TIỆM'>('TIỆM');
-  const [newItemCategory, setNewItemCategory] = useState<'sjc' | 'pnj' | 'doji' | 'aaa' | 'jewelry' | 'custom'>('jewelry');
-  const [newItemApiBuy, setNewItemApiBuy] = useState<number>(87000000);
-  const [newItemApiSell, setNewItemApiSell] = useState<number>(89000000);
-  const [newItemNote, setNewItemNote] = useState<string>('');
+  const [newName, setNewName] = useState<string>('');
+  const [newBrand, setNewBrand] = useState<'SJC' | 'PNJ' | 'DOJI' | 'AAA' | 'TIỆM'>('TIỆM');
+  const [newPurity, setNewPurity] = useState<string>('99.99%');
+  const [newCategory, setNewCategory] = useState<'sjc' | 'pnj' | 'doji' | 'aaa' | 'jewelry' | 'custom'>('jewelry');
+  const [newBuyPrice, setNewBuyPrice] = useState<number>(88500000);
+  const [newSellPrice, setNewSellPrice] = useState<number>(89800000);
+  const [newNote, setNewNote] = useState<string>('');
 
-  // Handle PIN verification
-  const handleVerifyPin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (pinInput === settings.adminPin || pinInput === '1234') {
-      setIsAuthenticated(true);
-      setPinError('');
-    } else {
-      setPinError('Mã PIN không đúng! (Mã mặc định là: 1234)');
-    }
-  };
+  // Brand filter in items tab
+  const [brandFilter, setBrandFilter] = useState<string>('ALL');
 
-  // Save all settings and items to parent & backend
+  // Handle Save all to Firestore and propagate to TV
   const handleSaveAll = () => {
     onUpdateSettings(localSettings);
     onUpdateItems(localItems);
@@ -79,61 +90,59 @@ export const OwnerAdmin: React.FC<OwnerAdminProps> = ({
     }, 3500);
   };
 
-  // Update item field and auto-sync
-  const updateItemField = (id: string, field: keyof GoldItem, value: any) => {
-    setLocalItems(prev => {
-      const updated = prev.map(item => {
-        if (item.id === id) {
-          return { ...item, [field]: value };
-        }
-        return item;
-      });
-      onUpdateItems(updated);
-      return updated;
+  // Toggle item visibility on TV
+  const toggleVisibility = (id: string) => {
+    const updated = localItems.map(item => {
+      if (item.id === id) {
+        return { ...item, visible: !item.visible };
+      }
+      return item;
     });
+    setLocalItems(updated);
+    onUpdateItems(updated);
   };
 
-  // Toggle item visibility and auto-sync
-  const toggleItemVisibility = (id: string) => {
-    setLocalItems(prev => {
-      const updated = prev.map(item => {
-        if (item.id === id) {
-          return { ...item, visible: !item.visible };
-        }
-        return item;
-      });
-      onUpdateItems(updated);
-      return updated;
+  // Update item custom price
+  const updateItemCustomPrice = (id: string, field: 'customBuy' | 'customSell', val: number | null) => {
+    const updated = localItems.map(item => {
+      if (item.id === id) {
+        const isCustom = val !== null || (field === 'customBuy' ? item.customSell !== null : item.customBuy !== null);
+        return {
+          ...item,
+          [field]: val,
+          useCustomPrice: isCustom
+        };
+      }
+      return item;
     });
+    setLocalItems(updated);
+    onUpdateItems(updated);
   };
 
-  // Delete item with immediate auto-sync (No blocking window.confirm in iframe)
+  // Delete item
   const handleDeleteItem = (id: string) => {
-    const itemToDelete = localItems.find(i => i.id === id);
     const updated = localItems.filter(item => item.id !== id);
     setLocalItems(updated);
     onUpdateItems(updated);
-    setSavedNotification(true);
-    setTimeout(() => setSavedNotification(false), 3000);
   };
 
-  // Add new custom item with immediate auto-sync
+  // Add new item
   const handleAddNewItem = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newItemName.trim()) return;
+    if (!newName.trim()) return;
 
     const newItem: GoldItem = {
       id: 'custom-' + Date.now(),
-      name: newItemName.trim(),
-      purity: newItemPurity,
-      brand: newItemBrand,
-      category: newItemCategory,
-      apiBuy: newItemApiBuy,
-      apiSell: newItemApiSell,
-      baseBuy: newItemApiBuy,
-      baseSell: newItemApiSell,
-      prevDayBuy: newItemApiBuy - 200000,
-      prevDaySell: newItemApiSell - 200000,
+      name: newName.trim(),
+      purity: newPurity,
+      brand: newBrand,
+      category: newCategory,
+      apiBuy: newBuyPrice,
+      apiSell: newSellPrice,
+      baseBuy: newBuyPrice,
+      baseSell: newSellPrice,
+      prevDayBuy: newBuyPrice - 100000,
+      prevDaySell: newSellPrice - 100000,
       trend: 'equal',
       changeAmount: 0,
       profitOnBuyPercent: null,
@@ -143,762 +152,926 @@ export const OwnerAdmin: React.FC<OwnerAdminProps> = ({
       customSell: null,
       visible: true,
       order: localItems.length + 1,
-      note: newItemNote.trim()
+      note: newNote.trim()
     };
 
     const updated = [...localItems, newItem];
     setLocalItems(updated);
     onUpdateItems(updated);
     setShowAddModal(false);
-    setNewItemName('');
-    setNewItemNote('');
+    setNewName('');
+    setNewNote('');
     setSavedNotification(true);
     setTimeout(() => setSavedNotification(false), 3000);
   };
 
-  // Presets for owner quick click
-  const profitOnBuyPresets = [0, 0.5, 1.0, 1.5, 2.0, 2.5];
-  const spreadPresets = [1.0, 1.5, 1.8, 2.0, 2.5, 3.0];
+  // Stepper adjustments for Buy & Sell amount deltas (+/- 10k)
+  const adjustDelta = (type: 'buy' | 'sell', deltaChange: number) => {
+    setLocalSettings(prev => {
+      const field = type === 'buy' ? 'buyAmountDeltaPerChi' : 'sellAmountDeltaPerChi';
+      const current = prev[field] ?? (type === 'buy' ? -100000 : 100000);
+      const next = current + deltaChange;
+      return {
+        ...prev,
+        calculationType: 'amount_delta',
+        [field]: next
+      };
+    });
+  };
 
-  // PIN Entry Gatekeeper
-  if (!isAuthenticated) {
-    return (
-      <div className="w-full max-w-md mx-auto px-4 py-12 flex flex-col items-center justify-center min-h-[500px]">
-        <div className="w-full bg-white border-2 border-red-600/30 rounded-2xl p-6 sm:p-8 shadow-xl text-center">
-          <div className="w-16 h-16 rounded-2xl bg-red-50 border-2 border-red-600 flex items-center justify-center text-red-600 mx-auto mb-4">
-            <Lock className="w-8 h-8" />
-          </div>
+  // Quick preset buttons for delta amounts
+  const buyPresets = [-50000, -100000, -150000, -200000, 0];
+  const sellPresets = [50000, 100000, 150000, 200000, 250000];
 
-          <h2 className="text-xl font-black text-red-700 font-serif uppercase tracking-wide">
-            KHU VỰC QUẢN TRỊ CHỦ TIỆM
-          </h2>
-          <p className="text-xs text-neutral-600 mt-1 mb-6 leading-relaxed">
-            Vui lòng nhập mã PIN bảo mật để thiết lập tỷ lệ lãi cộng thêm, chênh lệch mua bán và quản lý bảng giá Tiệm Vàng Đức Kỳ.
-          </p>
+  // Demo market item for live calculation preview
+  const demoMarketPerLuong = 166000000; // 16.600k / chỉ
+  const currentBuyDelta = localSettings.buyAmountDeltaPerChi ?? -100000;
+  const currentSellDelta = localSettings.sellAmountDeltaPerChi ?? 100000;
 
-          <form onSubmit={handleVerifyPin} className="space-y-4">
-            <div>
-              <input
-                type="password"
-                maxLength={8}
-                value={pinInput}
-                onChange={(e) => setPinInput(e.target.value)}
-                placeholder="Nhập mã PIN (Mặc định: 1234)"
-                autoFocus
-                className="w-full px-4 py-3 bg-neutral-50 border-2 border-neutral-300 rounded-xl text-center text-xl font-mono tracking-widest text-neutral-900 focus:outline-none focus:border-red-600 focus:bg-white"
-              />
-              {pinError && (
-                <p className="text-xs text-red-600 mt-2 font-bold flex items-center justify-center gap-1">
-                  <AlertCircle className="w-3.5 h-3.5" />
-                  {pinError}
-                </p>
-              )}
-            </div>
-
-            <button
-              type="submit"
-              className="w-full py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black text-sm tracking-wide shadow-md transition-all active:scale-98 flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <Unlock className="w-4 h-4" />
-              Mở Khóa Quản Trị
-            </button>
-          </form>
-
-          <div className="mt-6 pt-4 border-t border-neutral-200 text-xs text-neutral-500">
-            Mã PIN bảo mật mặc định ban đầu là: <strong className="text-red-700 font-mono">1234</strong>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Filtered items
+  const filteredItems = localItems.filter(item => {
+    if (brandFilter === 'ALL') return true;
+    if (brandFilter === 'SJC') return item.brand === 'SJC' || item.name.includes('SJC');
+    if (brandFilter === 'PNJ') return item.brand === 'PNJ' || item.name.includes('PNJ');
+    if (brandFilter === 'DOJI') return item.brand === 'DOJI' || item.name.includes('DOJI');
+    if (brandFilter === 'JEWELRY') return item.category === 'jewelry' || item.brand === 'TIỆM';
+    return true;
+  });
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-3 sm:px-6 py-6 space-y-6 text-neutral-800">
-
-      {/* Save Success Alert */}
+    <div className="w-full max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-5 pb-24 sm:pb-8 text-neutral-800 animate-fade-in">
+      
+      {/* Toast Save Alert */}
       {savedNotification && (
-        <div className="bg-emerald-600 text-white px-5 py-3 rounded-xl shadow-lg flex items-center justify-between gap-3 animate-fade-in">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
-            <span className="font-bold text-sm">
-              Đã lưu thành công! Bảng giá vàng trên TV và máy tính tiền đã được cập nhật đồng bộ ngay lập tức.
-            </span>
+        <div className="fixed top-4 right-4 z-50 bg-emerald-700 text-white px-5 py-3 rounded-2xl shadow-xl flex items-center gap-3 border border-emerald-500 animate-fade-in">
+          <CheckCircle2 className="w-5 h-5 text-emerald-200 flex-shrink-0" />
+          <div>
+            <div className="font-black text-sm">Đã Lưu & Đồng Bộ Thành Công!</div>
+            <div className="text-xs text-emerald-100">Bảng giá trên TV đang hiển thị ngay dữ liệu mới nhất.</div>
           </div>
         </div>
       )}
 
-      {/* Top Admin Action Header */}
-      <div className="bg-white border-2 border-red-600/20 rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-1 rounded-md text-xs font-black bg-red-600 text-white uppercase">
-              CHỦ TIỆM ĐỨC KỲ
-            </span>
-            <h2 className="text-lg sm:text-xl font-black text-red-800 font-serif">
-              Thiết Lập Tỷ Lệ Lãi & Giá Bán Tự Động
-            </h2>
+      {/* TOP COMMAND BAR */}
+      <div className="bg-white border-2 border-red-700/30 rounded-3xl p-4 sm:p-5 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+        
+        {/* Left: Store identity & TV shortcut */}
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onBackToBoard}
+            className="px-3.5 py-2 rounded-2xl bg-amber-400 hover:bg-amber-300 text-red-950 font-black text-xs sm:text-sm flex items-center gap-2 shadow-xs transition-all active:scale-95 cursor-pointer border border-amber-500"
+            title="Quay lại Bảng TV"
+          >
+            <Tv className="w-4 h-4" />
+            <span className="uppercase">Quay Lại Bảng TV</span>
+          </button>
+
+          <div className="h-6 w-px bg-neutral-300 hidden sm:block" />
+
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-red-800 text-white uppercase tracking-wider">
+                CHỦ TIỆM ĐỨC KỲ
+              </span>
+              <h2 className="text-base sm:text-lg font-black text-red-800 font-serif">
+                Trung Tâm Quản Trị & Cài Đặt Toàn Diện
+              </h2>
+            </div>
+            <div className="text-xs text-neutral-500 mt-0.5 flex items-center gap-2">
+              <span>Mã PIN quản trị: <strong className="text-neutral-800 font-mono font-bold">1234</strong></span>
+              <span>•</span>
+              {isFirebaseConnected && (
+                <span className="text-emerald-700 font-bold flex items-center gap-1">
+                  <Radio className="w-3 h-3 text-emerald-600 animate-pulse" />
+                  Đồng bộ TV tức thì {lastSyncedTime ? `(${lastSyncedTime})` : ''}
+                </span>
+              )}
+            </div>
           </div>
-          <p className="text-xs text-neutral-600 mt-1">
-            Dữ liệu gốc được đồng bộ trực tiếp từ: <strong className="text-red-700">{settings.dataSourceName}</strong>
-          </p>
         </div>
 
-        <div className="flex items-center gap-2.5 w-full md:w-auto justify-end">
+        {/* Right: Actions */}
+        <div className="flex items-center gap-2 self-end md:self-center">
           <button
             type="button"
             onClick={onRefreshMarket}
             disabled={isRefreshing}
-            className="px-3.5 py-2 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-800 border border-neutral-300 text-xs font-bold flex items-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer"
+            className="px-3 py-2 rounded-2xl bg-neutral-100 hover:bg-neutral-200 text-neutral-800 border border-neutral-300 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+            title="Lấy giá API mới nhất từ SJC, PNJ, DOJI"
           >
-            <RefreshCw className={`w-3.5 h-3.5 text-red-600 ${isRefreshing ? 'animate-spin' : ''}`} />
-            <span>Lấy lại giá API</span>
+            <RefreshCw className={`w-3.5 h-3.5 text-red-700 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">Lấy giá API</span>
           </button>
+
+          {onOpenCalculator && (
+            <button
+              type="button"
+              onClick={onOpenCalculator}
+              className="px-3 py-2 rounded-2xl bg-neutral-100 hover:bg-neutral-200 text-neutral-800 border border-neutral-300 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+              title="Mở máy tính tiền"
+            >
+              <Calculator className="w-3.5 h-3.5 text-neutral-700" />
+              <span className="hidden sm:inline">Máy tính tiền</span>
+            </button>
+          )}
 
           <button
             type="button"
             onClick={handleSaveAll}
-            className="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black text-xs sm:text-sm shadow-md flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer"
+            className="px-4 sm:px-5 py-2 rounded-2xl bg-gradient-to-r from-red-700 to-red-800 hover:from-red-800 hover:to-red-900 text-white font-black text-xs sm:text-sm shadow-md flex items-center gap-2 active:scale-95 transition-all cursor-pointer"
           >
-            <Save className="w-4 h-4" />
-            <span>Lưu & Áp Dụng Ngay Lên TV</span>
+            <Save className="w-4 h-4 text-amber-300" />
+            <span>LƯU & ĐỒNG BỘ LÊN TV</span>
           </button>
+
+          {onLockAdmin && (
+            <button
+              type="button"
+              onClick={onLockAdmin}
+              className="p-2 rounded-2xl bg-neutral-100 hover:bg-red-50 text-neutral-600 hover:text-red-700 border border-neutral-300 transition-colors cursor-pointer"
+              title="Khóa bảo mật Admin"
+            >
+              <Lock className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
 
-      {/* SECTION 1: CORE OWNER FORMULA & PRICING MODE */}
-      <div className="bg-white border-2 border-red-600 rounded-2xl p-4 sm:p-6 shadow-sm space-y-4">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 border-b border-neutral-200 pb-3">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-red-600 text-white flex items-center justify-center font-bold">
-              <Percent className="w-5 h-5 text-yellow-300" />
+      {/* ADMIN NAVIGATION TABS */}
+      <div className="flex bg-neutral-200/80 p-1.5 rounded-2xl gap-1.5 overflow-x-auto text-xs sm:text-sm font-black">
+        <button
+          type="button"
+          onClick={() => setAdminTab('pricing')}
+          className={`flex-1 py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
+            adminTab === 'pricing'
+              ? 'bg-red-800 text-white shadow-xs'
+              : 'text-neutral-700 hover:text-neutral-900 hover:bg-neutral-100'
+          }`}
+        >
+          <Sliders className="w-4 h-4" />
+          <span>1. Định Giá & Tính Lãi</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setAdminTab('items')}
+          className={`flex-1 py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
+            adminTab === 'items'
+              ? 'bg-red-800 text-white shadow-xs'
+              : 'text-neutral-700 hover:text-neutral-900 hover:bg-neutral-100'
+          }`}
+        >
+          <Layers className="w-4 h-4" />
+          <span>2. Quản Lý Loại Vàng ({localItems.length})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setAdminTab('store')}
+          className={`flex-1 py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
+            adminTab === 'store'
+              ? 'bg-red-800 text-white shadow-xs'
+              : 'text-neutral-700 hover:text-neutral-900 hover:bg-neutral-100'
+          }`}
+        >
+          <Store className="w-4 h-4" />
+          <span>3. Cài Đặt TV & Cửa Hàng</span>
+        </button>
+      </div>
+
+      {/* =========================================================================
+          TAB 1: ĐỊNH GIÁ & CÔNG THỨC TÍNH TIỀN (AMOUNT DELTA / PERCENT / ROUNDING)
+         ========================================================================= */}
+      {adminTab === 'pricing' && (
+        <div className="space-y-5 animate-fade-in">
+          
+          {/* Method Selector: Direct Money Difference vs Percentage */}
+          <div className="bg-white border-2 border-neutral-200 rounded-3xl p-4 sm:p-6 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-neutral-100 pb-3">
+              <div>
+                <h3 className="text-base sm:text-lg font-black text-red-800 font-serif flex items-center gap-2">
+                  <DollarSign className="w-5 h-5 text-red-700" />
+                  Phương Thức Định Giá Tiệm Vàng
+                </h3>
+                <p className="text-xs text-neutral-600">
+                  Chọn cách tiệm vàng tự động tính giá Mua vào và Bán ra từ giá thị trường API.
+                </p>
+              </div>
+
+              {/* Mode toggles */}
+              <div className="flex bg-neutral-100 p-1 rounded-xl border border-neutral-300 text-xs font-black">
+                <button
+                  type="button"
+                  onClick={() => setLocalSettings(prev => ({ ...prev, calculationType: 'amount_delta', pricingMode: 'formula' }))}
+                  className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                    (localSettings.calculationType || 'amount_delta') === 'amount_delta'
+                      ? 'bg-red-800 text-white shadow-xs'
+                      : 'text-neutral-700 hover:text-neutral-900'
+                  }`}
+                >
+                  Trừ/Cộng tiền trực tiếp (Khuyên dùng)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLocalSettings(prev => ({ ...prev, calculationType: 'percent', pricingMode: 'formula' }))}
+                  className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                    localSettings.calculationType === 'percent'
+                      ? 'bg-red-800 text-white shadow-xs'
+                      : 'text-neutral-700 hover:text-neutral-900'
+                  }`}
+                >
+                  Tính theo % Lãi
+                </button>
+              </div>
             </div>
+
+            {/* DIRECT MONEY DELTA CARDS (Khuyên dùng cho tiệm vàng: -100k mua, +100k bán) */}
+            {(localSettings.calculationType || 'amount_delta') === 'amount_delta' ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 pt-2">
+                
+                {/* 1. Mua Vào: Trừ tiền (Ví dụ: -100.000 đ/chỉ) */}
+                <div className="bg-emerald-50/70 border-2 border-emerald-300 rounded-2xl p-4 sm:p-5 flex flex-col justify-between space-y-4">
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-black text-emerald-900 uppercase tracking-wide flex items-center gap-1.5">
+                        <TrendingUp className="w-4 h-4 text-emerald-700" />
+                        Giá Mua Vào Của Tiệm
+                      </span>
+                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-200/80 text-emerald-900">
+                        Chênh lệch theo 1 Chỉ
+                      </span>
+                    </div>
+                    <p className="text-xs text-neutral-600 mt-1 leading-relaxed">
+                      Tiệm mua lại của khách thấp hơn giá thị trường bao nhiêu tiền (Ví dụ: Trừ <strong>-100.000 đ/chỉ</strong>).
+                    </p>
+                  </div>
+
+                  {/* Stepper +/- 10k buttons for touch/mobile */}
+                  <div className="flex items-center justify-between gap-3 bg-white p-2 rounded-2xl border border-emerald-200 shadow-2xs">
+                    <button
+                      type="button"
+                      onClick={() => adjustDelta('buy', -10000)}
+                      className="w-11 h-11 rounded-xl bg-emerald-100 hover:bg-emerald-200 active:bg-emerald-300 text-emerald-900 font-black text-xl flex items-center justify-center cursor-pointer transition-all active:scale-95"
+                      title="Giảm 10.000 đ"
+                    >
+                      -
+                    </button>
+
+                    <div className="text-center flex-1">
+                      <div className="font-mono font-black text-lg sm:text-xl text-emerald-800">
+                        {currentBuyDelta > 0 ? `+${(currentBuyDelta / 1000).toLocaleString('vi-VN')}k` : `${(currentBuyDelta / 1000).toLocaleString('vi-VN')}k`} / chỉ
+                      </div>
+                      <div className="text-[10px] text-neutral-500 font-bold">
+                        {currentBuyDelta === 0 ? 'Bằng giá thị trường' : currentBuyDelta < 0 ? `Trừ ${(Math.abs(currentBuyDelta) / 1000)}k mỗi chỉ` : `Cộng ${(currentBuyDelta / 1000)}k mỗi chỉ`}
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => adjustDelta('buy', 10000)}
+                      className="w-11 h-11 rounded-xl bg-emerald-100 hover:bg-emerald-200 active:bg-emerald-300 text-emerald-900 font-black text-xl flex items-center justify-center cursor-pointer transition-all active:scale-95"
+                      title="Tăng 10.000 đ"
+                    >
+                      +
+                    </button>
+                  </div>
+
+                  {/* Quick Presets */}
+                  <div>
+                    <span className="text-[11px] font-bold text-neutral-500 mb-1.5 block">Chọn nhanh:</span>
+                    <div className="grid grid-cols-5 gap-1.5">
+                      {buyPresets.map(preset => (
+                        <button
+                          key={preset}
+                          type="button"
+                          onClick={() => setLocalSettings(prev => ({ ...prev, buyAmountDeltaPerChi: preset }))}
+                          className={`py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer text-center ${
+                            currentBuyDelta === preset
+                              ? 'bg-emerald-700 text-white font-black shadow-xs ring-2 ring-emerald-500'
+                              : 'bg-white text-neutral-700 hover:bg-emerald-100 border border-neutral-300'
+                          }`}
+                        >
+                          {preset === 0 ? 'Gốc' : `${preset / 1000}k`}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Bán Ra: Cộng tiền (Ví dụ: +100.000 đ/chỉ) */}
+                <div className="bg-red-50/70 border-2 border-red-300 rounded-2xl p-4 sm:p-5 flex flex-col justify-between space-y-4">
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-black text-red-900 uppercase tracking-wide flex items-center gap-1.5">
+                        <DollarSign className="w-4 h-4 text-red-700" />
+                        Giá Bán Ra Cho Khách
+                      </span>
+                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-red-200/80 text-red-900">
+                        Chênh lệch theo 1 Chỉ
+                      </span>
+                    </div>
+                    <p className="text-xs text-neutral-600 mt-1 leading-relaxed">
+                      Tiệm bán ra cao hơn giá thị trường bao nhiêu tiền (Ví dụ: Cộng <strong>+100.000 đ/chỉ</strong>).
+                    </p>
+                  </div>
+
+                  {/* Stepper +/- 10k buttons for touch/mobile */}
+                  <div className="flex items-center justify-between gap-3 bg-white p-2 rounded-2xl border border-red-200 shadow-2xs">
+                    <button
+                      type="button"
+                      onClick={() => adjustDelta('sell', -10000)}
+                      className="w-11 h-11 rounded-xl bg-red-100 hover:bg-red-200 active:bg-red-300 text-red-900 font-black text-xl flex items-center justify-center cursor-pointer transition-all active:scale-95"
+                      title="Giảm 10.000 đ"
+                    >
+                      -
+                    </button>
+
+                    <div className="text-center flex-1">
+                      <div className="font-mono font-black text-lg sm:text-xl text-red-800">
+                        {currentSellDelta > 0 ? `+${(currentSellDelta / 1000).toLocaleString('vi-VN')}k` : `${(currentSellDelta / 1000).toLocaleString('vi-VN')}k`} / chỉ
+                      </div>
+                      <div className="text-[10px] text-neutral-500 font-bold">
+                        {currentSellDelta === 0 ? 'Bằng giá thị trường' : currentSellDelta > 0 ? `Cộng ${(currentSellDelta / 1000)}k mỗi chỉ` : `Trừ ${(Math.abs(currentSellDelta) / 1000)}k mỗi chỉ`}
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => adjustDelta('sell', 10000)}
+                      className="w-11 h-11 rounded-xl bg-red-100 hover:bg-red-200 active:bg-red-300 text-red-900 font-black text-xl flex items-center justify-center cursor-pointer transition-all active:scale-95"
+                      title="Tăng 10.000 đ"
+                    >
+                      +
+                    </button>
+                  </div>
+
+                  {/* Quick Presets */}
+                  <div>
+                    <span className="text-[11px] font-bold text-neutral-500 mb-1.5 block">Chọn nhanh:</span>
+                    <div className="grid grid-cols-5 gap-1.5">
+                      {sellPresets.map(preset => (
+                        <button
+                          key={preset}
+                          type="button"
+                          onClick={() => setLocalSettings(prev => ({ ...prev, sellAmountDeltaPerChi: preset }))}
+                          className={`py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer text-center ${
+                            currentSellDelta === preset
+                              ? 'bg-red-700 text-white font-black shadow-xs ring-2 ring-red-500'
+                              : 'bg-white text-neutral-700 hover:bg-red-100 border border-neutral-300'
+                          }`}
+                        >
+                          +{preset / 1000}k
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            ) : (
+              /* PERCENTAGE MODE */
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 pt-2">
+                <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-200">
+                  <span className="text-xs font-bold text-emerald-900 block mb-1">% Lãi cộng vào giá Mua API</span>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="range"
+                      min="0"
+                      max="5"
+                      step="0.1"
+                      value={localSettings.globalProfitOnBuyPercent}
+                      onChange={(e) => setLocalSettings(prev => ({ ...prev, globalProfitOnBuyPercent: parseFloat(e.target.value) || 0 }))}
+                      className="flex-1 accent-emerald-700"
+                    />
+                    <span className="font-mono font-black text-emerald-800 text-sm w-16 text-right">
+                      +{localSettings.globalProfitOnBuyPercent}%
+                    </span>
+                  </div>
+                </div>
+
+                <div className="bg-red-50 p-4 rounded-2xl border border-red-200">
+                  <span className="text-xs font-bold text-red-900 block mb-1">% Chênh lệch giữa Mua và Bán</span>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="range"
+                      min="0.5"
+                      max="6"
+                      step="0.1"
+                      value={localSettings.globalSpreadPercent}
+                      onChange={(e) => setLocalSettings(prev => ({ ...prev, globalSpreadPercent: parseFloat(e.target.value) || 0 }))}
+                      className="flex-1 accent-red-700"
+                    />
+                    <span className="font-mono font-black text-red-800 text-sm w-16 text-right">
+                      +{localSettings.globalSpreadPercent}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* LIVE SIMULATION VISUAL BOX */}
+            <div className="bg-neutral-900 text-white rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-amber-400 flex-shrink-0" />
+                <div>
+                  <div className="text-xs text-neutral-300 font-medium">Mô Phỏng Trực Tiếp (Ví dụ 1 chỉ thị trường = 16.600k):</div>
+                  <div className="text-xs sm:text-sm font-bold text-amber-300">Giá hiển thị thực tế trên màn hình TV cho khách</div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 sm:gap-6 font-mono">
+                <div className="text-center bg-neutral-800 px-3 py-1.5 rounded-xl border border-neutral-700">
+                  <span className="text-[10px] text-emerald-400 block font-sans uppercase font-black">Tiệm Mua Lại</span>
+                  <span className="text-sm sm:text-base font-black text-emerald-300">
+                    {((16600000 + currentBuyDelta) / 1000).toLocaleString('vi-VN')}k
+                  </span>
+                </div>
+
+                <div className="text-neutral-500 font-bold">➔</div>
+
+                <div className="text-center bg-neutral-800 px-3 py-1.5 rounded-xl border border-neutral-700">
+                  <span className="text-[10px] text-red-400 block font-sans uppercase font-black">Tiệm Bán Ra</span>
+                  <span className="text-sm sm:text-base font-black text-red-300">
+                    {((16600000 + currentSellDelta) / 1000).toLocaleString('vi-VN')}k
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* ROUNDING RULES (Làm tròn hàng chục nghìn) */}
+            <div className="bg-amber-50 border border-amber-300 rounded-2xl p-4 sm:p-5 space-y-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <span className="text-xs sm:text-sm font-black text-amber-950 flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-amber-700" />
+                  Quy Tắc Làm Tròn Giá Hàng Chục Nghìn (Áp Dụng Lên Bảng TV)
+                </span>
+                <span className="text-[10px] bg-amber-200 text-amber-900 font-bold px-2 py-0.5 rounded-md">
+                  Ví dụ: 14.897k ➔ 14.900k
+                </span>
+              </div>
+              <p className="text-xs text-amber-900 leading-relaxed">
+                Đảm bảo số tiền trên TV luôn tròn đẹp, không có số lẻ cent, nếu ở số 5 thì giữ nguyên, dưới 5 làm tròn lên 5.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setLocalSettings(prev => ({ ...prev, roundingRule: 'round_up_step_5_10' }))}
+                  className={`p-3 rounded-xl text-left border transition-all cursor-pointer ${
+                    (localSettings.roundingRule || 'round_up_step_5_10') === 'round_up_step_5_10'
+                      ? 'bg-red-800 text-white border-red-900 shadow-xs'
+                      : 'bg-white text-neutral-800 border-amber-200 hover:bg-amber-100'
+                  }`}
+                >
+                  <div className="text-xs font-black">Làm tròn bước 5 - 10k</div>
+                  <div className="text-[10px] opacity-80 mt-0.5">14.897 ➔ 14.900 (Chuẩn tiệm vàng)</div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setLocalSettings(prev => ({ ...prev, roundingRule: 'round_up_10' }))}
+                  className={`p-3 rounded-xl text-left border transition-all cursor-pointer ${
+                    localSettings.roundingRule === 'round_up_10'
+                      ? 'bg-red-800 text-white border-red-900 shadow-xs'
+                      : 'bg-white text-neutral-800 border-amber-200 hover:bg-amber-100'
+                  }`}
+                >
+                  <div className="text-xs font-black">Làm tròn chẵn 10.000 đ</div>
+                  <div className="text-[10px] opacity-80 mt-0.5">Làm tròn lên chục nghìn</div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setLocalSettings(prev => ({ ...prev, roundingRule: 'round_none' }))}
+                  className={`p-3 rounded-xl text-left border transition-all cursor-pointer ${
+                    localSettings.roundingRule === 'round_none'
+                      ? 'bg-red-800 text-white border-red-900 shadow-xs'
+                      : 'bg-white text-neutral-800 border-amber-200 hover:bg-amber-100'
+                  }`}
+                >
+                  <div className="text-xs font-black">Không làm tròn</div>
+                  <div className="text-[10px] opacity-80 mt-0.5">Giữ nguyên số lẻ tính toán</div>
+                </button>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      )}
+
+      {/* =========================================================================
+          TAB 2: QUẢN LÝ DANH SÁCH LOẠI VÀNG (ẨN/HIỆN TV, SỬA GIÁ, THÊM, XÓA)
+         ========================================================================= */}
+      {adminTab === 'items' && (
+        <div className="space-y-4 animate-fade-in">
+          
+          {/* Item List Header & Controls */}
+          <div className="bg-white border-2 border-neutral-200 rounded-3xl p-4 sm:p-5 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div>
-              <h3 className="text-base sm:text-lg font-black text-red-800 font-serif">
-                1. Chế Độ Định Giá & Công Thức Tính Lãi
+              <h3 className="text-base sm:text-lg font-black text-red-800 font-serif flex items-center gap-2">
+                <Layers className="w-5 h-5 text-red-700" />
+                Danh Sách Loại Vàng Hiển Thị Trên Bảng TV ({filteredItems.length}/{localItems.length})
               </h3>
               <p className="text-xs text-neutral-600">
-                Lựa chọn tính giá tự động theo % từ API hoặc tự nhập trực tiếp giá lên bảng hiển thị.
+                Bật/tắt biểu tượng <Eye className="w-3.5 h-3.5 inline text-emerald-600" /> để Ẩn hoặc Hiện loại vàng trên TV. Gõ giá trực tiếp nếu muốn giá cố định.
               </p>
+            </div>
+
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+              {/* Brand Filter */}
+              <select
+                value={brandFilter}
+                onChange={(e) => setBrandFilter(e.target.value)}
+                className="px-3 py-2 rounded-xl bg-neutral-100 border border-neutral-300 text-xs font-bold text-neutral-800 focus:outline-none"
+              >
+                <option value="ALL">Tất cả thương hiệu</option>
+                <option value="SJC">SJC</option>
+                <option value="PNJ">PNJ</option>
+                <option value="DOJI">DOJI</option>
+                <option value="JEWELRY">Nữ trang tiệm</option>
+              </select>
+
+              <button
+                type="button"
+                onClick={() => setShowAddModal(true)}
+                className="px-3.5 py-2 rounded-xl bg-red-800 hover:bg-red-700 text-white font-black text-xs flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-95 transition-all"
+              >
+                <Plus className="w-4 h-4 text-amber-300" />
+                <span>Thêm loại vàng</span>
+              </button>
             </div>
           </div>
 
-          {/* Pricing Mode Switcher */}
-          <div className="flex items-center bg-neutral-100 p-1 rounded-xl border border-neutral-300 text-xs font-black">
-            <button
-              type="button"
-              onClick={() => {
-                const updated = { ...localSettings, pricingMode: 'formula' as const };
-                setLocalSettings(updated);
-                onUpdateSettings(updated);
-              }}
-              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                localSettings.pricingMode === 'formula'
-                  ? 'bg-red-700 text-white shadow-xs'
-                  : 'text-neutral-700 hover:text-neutral-900'
-              }`}
-            >
-              Chỉnh theo % Lãi API
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                const updated = { ...localSettings, pricingMode: 'custom_override' as const };
-                setLocalSettings(updated);
-                onUpdateSettings(updated);
-              }}
-              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                localSettings.pricingMode === 'custom_override'
-                  ? 'bg-red-700 text-white shadow-xs'
-                  : 'text-neutral-700 hover:text-neutral-900'
-              }`}
-            >
-              Tự nhập giá lên bảng
-            </button>
+          {/* Gold Item Cards for Mobile & Responsive Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+            {filteredItems.map((item) => {
+              const { finalBuy, finalSell } = calculateStorePrices(item, localSettings);
+              const isCustom = item.useCustomPrice && (item.customBuy !== null || item.customSell !== null);
+
+              return (
+                <div 
+                  key={item.id}
+                  className={`bg-white rounded-2xl p-4 border-2 transition-all shadow-2xs flex flex-col justify-between gap-3 ${
+                    item.visible 
+                      ? 'border-neutral-200 hover:border-red-400' 
+                      : 'border-neutral-300 bg-neutral-100/70 opacity-60'
+                  }`}
+                >
+                  {/* Card Top: Brand, Name & Eye Toggle */}
+                  <div className="flex items-start justify-between gap-2 border-b border-neutral-100 pb-2.5">
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase ${
+                        item.brand === 'SJC' ? 'bg-amber-100 text-amber-900 border border-amber-300' :
+                        item.brand === 'PNJ' ? 'bg-blue-100 text-blue-900 border border-blue-300' :
+                        item.brand === 'DOJI' ? 'bg-red-100 text-red-900 border border-red-300' :
+                        'bg-neutral-200 text-neutral-800'
+                      }`}>
+                        {item.brand}
+                      </span>
+                      <div>
+                        <div className="text-sm font-extrabold text-neutral-900">
+                          {item.name}
+                        </div>
+                        <div className="text-[11px] text-neutral-500 font-medium">
+                          Tuổi vàng: {item.purity || '99.99%'}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Eye toggle button */}
+                    <button
+                      type="button"
+                      onClick={() => toggleVisibility(item.id)}
+                      className={`px-2.5 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
+                        item.visible
+                          ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                          : 'bg-neutral-200 text-neutral-600 border border-neutral-300'
+                      }`}
+                      title={item.visible ? 'Đang hiện trên TV - Bấm để ẩn' : 'Đang ẩn khỏi TV - Bấm để hiện'}
+                    >
+                      {item.visible ? <Eye className="w-3.5 h-3.5 text-emerald-700" /> : <EyeOff className="w-3.5 h-3.5 text-neutral-500" />}
+                      <span>{item.visible ? 'Hiện TV' : 'Đang Ẩn'}</span>
+                    </button>
+                  </div>
+
+                  {/* Calculated Prices Display */}
+                  <div className="grid grid-cols-2 gap-2 bg-neutral-50 p-2.5 rounded-xl border border-neutral-200 font-mono">
+                    <div>
+                      <span className="text-[10px] text-emerald-800 font-sans font-bold block">Tiệm Mua Vào</span>
+                      <div className="text-sm font-black text-emerald-900">
+                        {Math.round(finalBuy / 10000).toLocaleString('vi-VN')}k / chỉ
+                      </div>
+                      <div className="text-[10px] text-neutral-500 font-sans">
+                        Gốc: {Math.round(item.apiBuy / 10000).toLocaleString('vi-VN')}k
+                      </div>
+                    </div>
+
+                    <div>
+                      <span className="text-[10px] text-red-800 font-sans font-bold block">Tiệm Bán Ra</span>
+                      <div className="text-sm font-black text-red-900">
+                        {Math.round(finalSell / 10000).toLocaleString('vi-VN')}k / chỉ
+                      </div>
+                      <div className="text-[10px] text-neutral-500 font-sans">
+                        Gốc: {Math.round(item.apiSell / 10000).toLocaleString('vi-VN')}k
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Custom Price Overrides input (optional) */}
+                  <div className="text-xs space-y-1.5">
+                    <div className="flex items-center justify-between text-[11px] text-neutral-600">
+                      <span className="font-semibold">Nhập giá bán riêng (nếu cần):</span>
+                      {isCustom && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            updateItemCustomPrice(item.id, 'customBuy', null);
+                            updateItemCustomPrice(item.id, 'customSell', null);
+                          }}
+                          className="text-[10px] text-red-700 font-bold hover:underline cursor-pointer"
+                        >
+                          Xóa giá riêng (Dùng công thức chung)
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        type="number"
+                        placeholder="Giá mua riêng..."
+                        value={item.customBuy ? item.customBuy / 10000 : ''}
+                        onChange={(e) => {
+                          const val = e.target.value ? parseFloat(e.target.value) * 10000 : null;
+                          updateItemCustomPrice(item.id, 'customBuy', val);
+                        }}
+                        className="w-full px-2.5 py-1.5 bg-white border border-neutral-300 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-red-600"
+                      />
+
+                      <input
+                        type="number"
+                        placeholder="Giá bán riêng..."
+                        value={item.customSell ? item.customSell / 10000 : ''}
+                        onChange={(e) => {
+                          const val = e.target.value ? parseFloat(e.target.value) * 10000 : null;
+                          updateItemCustomPrice(item.id, 'customSell', val);
+                        }}
+                        className="w-full px-2.5 py-1.5 bg-white border border-neutral-300 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-red-600"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Card Bottom: Delete */}
+                  <div className="flex items-center justify-end border-t border-neutral-100 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteItem(item.id)}
+                      className="text-neutral-400 hover:text-red-700 text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                      title="Xóa loại vàng này"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Xóa</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
+
         </div>
+      )}
 
-        {/* Rounding Rule Selector (Yêu cầu làm tròn hàng chục nghìn: 14897 -> 14900, 5 giữ nguyên, dưới 5 lên 5) */}
-        <div className="bg-amber-50 border border-amber-300/80 rounded-xl p-3.5 sm:p-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
-            <span className="text-xs sm:text-sm font-black text-amber-950 flex items-center gap-1.5">
-              <Sparkles className="w-4 h-4 text-amber-700" />
-              Quy Tắc Làm Tròn Giá Bán (Hàng Chục Nghìn)
-            </span>
-            <span className="text-[11px] text-amber-800 font-bold bg-amber-200/80 px-2 py-0.5 rounded-md">
-              Áp dụng lên bảng giá TV
-            </span>
-          </div>
-          <p className="text-xs text-amber-900 mb-3 leading-relaxed">
-            Ví dụ: Giá <strong>14.897</strong> nghìn thì làm tròn lên <strong>14.900</strong>. Nếu ở số <strong>5</strong> thì giữ nguyên, còn dưới 5 cũng làm tròn lên 5.
-          </p>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                const updated = { ...localSettings, roundingRule: 'round_up_step_5_10' as const };
-                setLocalSettings(updated);
-                onUpdateSettings(updated);
-              }}
-              className={`px-3 py-2 rounded-xl text-xs font-bold text-left transition-all border cursor-pointer ${
-                (localSettings.roundingRule || 'round_up_step_5_10') === 'round_up_step_5_10'
-                  ? 'bg-red-700 text-white border-red-800 shadow-xs ring-2 ring-red-600/30'
-                  : 'bg-white text-neutral-800 border-amber-300 hover:bg-amber-100/60'
-              }`}
-            >
-              <div className="font-black">Làm tròn bước 5 - 10</div>
-              <div className="text-[10px] opacity-85 mt-0.5">14897 &rarr; 14900 (Chuẩn tiệm)</div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                const updated = { ...localSettings, roundingRule: 'round_up_10' as const };
-                setLocalSettings(updated);
-                onUpdateSettings(updated);
-              }}
-              className={`px-3 py-2 rounded-xl text-xs font-bold text-left transition-all border cursor-pointer ${
-                localSettings.roundingRule === 'round_up_10'
-                  ? 'bg-red-700 text-white border-red-800 shadow-xs ring-2 ring-red-600/30'
-                  : 'bg-white text-neutral-800 border-amber-300 hover:bg-amber-100/60'
-              }`}
-            >
-              <div className="font-black">Làm tròn chẵn 10.000 đ</div>
-              <div className="text-[10px] opacity-85 mt-0.5">Làm tròn lên hàng chục nghìn</div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                const updated = { ...localSettings, roundingRule: 'round_none' as const };
-                setLocalSettings(updated);
-                onUpdateSettings(updated);
-              }}
-              className={`px-3 py-2 rounded-xl text-xs font-bold text-left transition-all border cursor-pointer ${
-                localSettings.roundingRule === 'round_none'
-                  ? 'bg-red-700 text-white border-red-800 shadow-xs ring-2 ring-red-600/30'
-                  : 'bg-white text-neutral-800 border-amber-300 hover:bg-amber-100/60'
-              }`}
-            >
-              <div className="font-black">Không làm tròn</div>
-              <div className="text-[10px] opacity-85 mt-0.5">Giữ nguyên số tính toán lẻ</div>
-            </button>
-          </div>
-        </div>
-
-        {/* Formula Visual Box */}
-        <div className="bg-neutral-50 border border-neutral-200 rounded-xl p-3 sm:p-4 my-2 flex flex-col md:flex-row items-center justify-around gap-3 text-xs sm:text-sm">
-          <div className="text-center">
-            <span className="text-neutral-500 font-medium block">Giá Mua Gốc từ API</span>
-            <span className="font-mono font-bold text-neutral-800 text-sm">88.500.000 đ</span>
-          </div>
-
-          <div className="text-red-600 font-extrabold flex items-center gap-1">
-            <ArrowRight className="w-4 h-4 hidden md:inline" />
-            <span>+ {localSettings.globalProfitOnBuyPercent}% Lãi</span>
-            <ArrowRight className="w-4 h-4 hidden md:inline" />
-          </div>
-
-          <div className="text-center bg-white border border-neutral-300 px-3 py-1.5 rounded-lg shadow-2xs">
-            <span className="text-blue-700 font-medium block text-xs">Giá Tiệm Mua Vào</span>
-            <span className="font-mono font-black text-blue-800 text-sm">
-              {formatVnd(Math.round(88500000 * (1 + localSettings.globalProfitOnBuyPercent / 100) / 10000) * 10000)} đ
-            </span>
-          </div>
-
-          <div className="text-red-600 font-extrabold flex items-center gap-1">
-            <ArrowRight className="w-4 h-4 hidden md:inline" />
-            <span>+ {localSettings.globalSpreadPercent}% Chênh Lệch</span>
-            <ArrowRight className="w-4 h-4 hidden md:inline" />
-          </div>
-
-          <div className="text-center bg-white border border-neutral-300 px-3 py-1.5 rounded-lg shadow-2xs">
-            <span className="text-red-700 font-medium block text-xs">Giá Tiệm Bán Ra Cho Khách</span>
-            <span className="font-mono font-black text-red-700 text-sm">
-              {formatVnd(Math.round(Math.round(88500000 * (1 + localSettings.globalProfitOnBuyPercent / 100) / 10000) * 10000 * (1 + localSettings.globalSpreadPercent / 100) / 10000) * 10000)} đ
-            </span>
-          </div>
-        </div>
-
-        {/* 2 Sliders & Controls */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
+      {/* =========================================================================
+          TAB 3: CÀI ĐẶT MÀN HÌNH TV & CỬA HÀNG
+         ========================================================================= */}
+      {adminTab === 'store' && (
+        <div className="space-y-4 animate-fade-in">
           
-          {/* Step 1: % Lãi cộng thêm vào giá mua API */}
-          <div className="bg-white border-2 border-emerald-600/30 rounded-xl p-4 sm:p-5 flex flex-col justify-between shadow-xs">
+          <div className="bg-white border-2 border-neutral-200 rounded-3xl p-4 sm:p-6 shadow-sm space-y-6">
             <div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-black text-emerald-800 flex items-center gap-1.5">
-                  <TrendingUp className="w-4 h-4 text-emerald-600" />
-                  Bước 1: % Lãi Cộng Thêm Vào Giá Mua API
-                </span>
-                <span className="text-xs text-neutral-500 font-medium">Đức Kỳ Mua Vào</span>
-              </div>
-
-              <p className="text-xs text-neutral-600 mt-1 mb-4 leading-relaxed">
-                Tỷ lệ phần trăm cộng thêm vào giá mua từ API (Ví dụ: <strong>1.0%</strong> như bạn muốn).
-                Giá Mua Tiệm = Giá API Mua × (1 + <strong>{localSettings.globalProfitOnBuyPercent}%</strong>).
-              </p>
-
-              {/* Presets */}
-              <div className="flex flex-wrap gap-2 mb-4">
-                {profitOnBuyPresets.map(val => (
-                  <button
-                    key={val}
-                    type="button"
-                    onClick={() => setLocalSettings(prev => ({ ...prev, globalProfitOnBuyPercent: val }))}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                      localSettings.globalProfitOnBuyPercent === val
-                        ? 'bg-emerald-600 text-white font-black shadow-xs ring-2 ring-emerald-600/30'
-                        : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200 border border-neutral-300'
-                    }`}
-                  >
-                    +{val}%
-                  </button>
-                ))}
-              </div>
-
-              {/* Slider & Number input */}
-              <div className="flex items-center gap-3">
-                <input
-                  type="range"
-                  min="0"
-                  max="5"
-                  step="0.1"
-                  value={localSettings.globalProfitOnBuyPercent}
-                  onChange={(e) => setLocalSettings(prev => ({ ...prev, globalProfitOnBuyPercent: parseFloat(e.target.value) || 0 }))}
-                  className="w-full accent-emerald-600 cursor-pointer"
-                />
-                <div className="flex items-center gap-1 bg-neutral-100 border border-neutral-300 rounded-lg px-2.5 py-1 w-24">
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={localSettings.globalProfitOnBuyPercent}
-                    onChange={(e) => setLocalSettings(prev => ({ ...prev, globalProfitOnBuyPercent: parseFloat(e.target.value) || 0 }))}
-                    className="w-full bg-transparent text-right font-mono font-black text-emerald-800 text-sm focus:outline-none"
-                  />
-                  <span className="text-xs text-emerald-800 font-bold">%</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-4 pt-3 border-t border-neutral-200 text-xs text-emerald-900 bg-emerald-50 p-2.5 rounded-lg font-medium">
-              Đang thiết lập: Cộng thêm <strong className="text-emerald-700 font-bold">+{localSettings.globalProfitOnBuyPercent}%</strong> vào giá mua gốc từ API.
-            </div>
-          </div>
-
-          {/* Step 2: % Chênh lệch giữa giá mua và giá bán */}
-          <div className="bg-white border-2 border-red-600/30 rounded-xl p-4 sm:p-5 flex flex-col justify-between shadow-xs">
-            <div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-black text-red-800 flex items-center gap-1.5">
-                  <Percent className="w-4 h-4 text-red-600" />
-                  Bước 2: % Chênh Lệch Giữa Giá Mua & Bán (Spread %)
-                </span>
-                <span className="text-xs text-neutral-500 font-medium">Đức Kỳ Bán Ra</span>
-              </div>
-
-              <p className="text-xs text-neutral-600 mt-1 mb-4 leading-relaxed">
-                Tỷ lệ phần trăm chênh lệch giữa giá mua và giá bán của tiệm (Ví dụ: <strong>2.0%</strong>).
-                Giá Bán Tiệm = Giá Mua Tiệm × (1 + <strong>{localSettings.globalSpreadPercent}%</strong>).
-              </p>
-
-              {/* Presets */}
-              <div className="flex flex-wrap gap-2 mb-4">
-                {spreadPresets.map(val => (
-                  <button
-                    key={val}
-                    type="button"
-                    onClick={() => setLocalSettings(prev => ({ ...prev, globalSpreadPercent: val }))}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                      localSettings.globalSpreadPercent === val
-                        ? 'bg-red-600 text-white font-black shadow-xs ring-2 ring-red-600/30'
-                        : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200 border border-neutral-300'
-                    }`}
-                  >
-                    {val}%
-                  </button>
-                ))}
-              </div>
-
-              {/* Slider & Number input */}
-              <div className="flex items-center gap-3">
-                <input
-                  type="range"
-                  min="0.5"
-                  max="6"
-                  step="0.1"
-                  value={localSettings.globalSpreadPercent}
-                  onChange={(e) => setLocalSettings(prev => ({ ...prev, globalSpreadPercent: parseFloat(e.target.value) || 0 }))}
-                  className="w-full accent-red-600 cursor-pointer"
-                />
-                <div className="flex items-center gap-1 bg-neutral-100 border border-neutral-300 rounded-lg px-2.5 py-1 w-24">
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={localSettings.globalSpreadPercent}
-                    onChange={(e) => setLocalSettings(prev => ({ ...prev, globalSpreadPercent: parseFloat(e.target.value) || 0 }))}
-                    className="w-full bg-transparent text-right font-mono font-black text-red-700 text-sm focus:outline-none"
-                  />
-                  <span className="text-xs text-red-700 font-bold">%</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-4 pt-3 border-t border-neutral-200 text-xs text-red-900 bg-red-50 p-2.5 rounded-lg font-medium">
-              Đang thiết lập: Giá bán ra của tiệm chênh lệch cao hơn giá mua là <strong className="text-red-700 font-bold">{localSettings.globalSpreadPercent}%</strong>.
-            </div>
-          </div>
-
-        </div>
-      </div>
-
-      {/* SECTION 2: ITEM-BY-ITEM REAL-TIME PREVIEW & INDIVIDUAL OVERRIDES */}
-      <div className="bg-white border-2 border-neutral-200 rounded-2xl p-4 sm:p-6 shadow-sm space-y-4">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div>
-            <h3 className="text-base sm:text-lg font-black text-neutral-900 font-serif flex items-center gap-2">
-              <Layers className="w-5 h-5 text-red-600" />
-              2. Bảng Tính Giá Chi Tiết Từng Loại Vàng (SJC, PNJ, DOJI, AAA, Nữ Trang)
-            </h3>
-            <p className="text-xs text-neutral-600">
-              Kiểm tra trực tiếp giá gốc API và giá sau khi cộng lãi. Bạn có thể ẩn/hiện loại vàng hoặc tự nhập giá cố định nếu cần.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setShowAddModal(true)}
-            className="px-3.5 py-2 rounded-xl bg-red-50 hover:bg-red-100 border border-red-300 text-red-700 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Thêm Loại Vàng Riêng Của Tiệm</span>
-          </button>
-        </div>
-
-        {/* Table of items */}
-        <div className="overflow-x-auto rounded-xl border border-neutral-200">
-          <table className="w-full text-left border-collapse text-xs sm:text-sm">
-            <thead>
-              <tr className="bg-neutral-100 text-neutral-700 uppercase tracking-wider text-[11px] font-black border-b border-neutral-300">
-                <th className="py-3 px-3 text-center w-12">Hiện TV</th>
-                <th className="py-3 px-3">Thương Hiệu & Loại Vàng</th>
-                <th className="py-3 px-3">Giá Gốc API (đ/lượng)</th>
-                <th className="py-3 px-3">Chế Độ Tính</th>
-                <th className="py-3 px-3 text-right text-emerald-800">Giá Tiệm Mua (VNĐ)</th>
-                <th className="py-3 px-3 text-right text-red-700">Giá Tiệm Bán (VNĐ)</th>
-                <th className="py-3 px-3 text-center w-14">Xóa</th>
-              </tr>
-            </thead>
-
-            <tbody className="divide-y divide-neutral-200">
-              {localItems.map((item) => {
-                const { finalBuy, finalSell } = calculateStorePrices(item, localSettings);
-
-                return (
-                  <tr 
-                    key={item.id} 
-                    className={`hover:bg-yellow-50/50 transition-colors ${!item.visible ? 'opacity-45 bg-neutral-100' : 'bg-white'}`}
-                  >
-                    {/* Visibility Toggle */}
-                    <td className="py-3 px-3 text-center">
-                      <button
-                        type="button"
-                        onClick={() => toggleItemVisibility(item.id)}
-                        title={item.visible ? "Đang hiển thị trên bảng TV (Click để ẩn)" : "Đang ẩn (Click để hiện)"}
-                        className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                          item.visible 
-                            ? 'text-red-700 bg-red-50 hover:bg-red-100' 
-                            : 'text-neutral-400 bg-neutral-200 hover:text-neutral-700'
-                        }`}
-                      >
-                        {item.visible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                      </button>
-                    </td>
-
-                    {/* Name, Brand & Purity */}
-                    <td className="py-3 px-3">
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-bold text-neutral-900">{item.name}</span>
-                        <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-neutral-200 text-neutral-800">
-                          {item.brand}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 mt-0.5 text-[11px] text-neutral-500">
-                        <span>Tuổi vàng:</span>
-                        <input
-                          type="text"
-                          value={item.purity}
-                          onChange={(e) => updateItemField(item.id, 'purity', e.target.value)}
-                          className="w-16 bg-neutral-50 px-1 rounded border border-neutral-300 text-neutral-800 font-mono text-[11px]"
-                        />
-                      </div>
-                    </td>
-
-                    {/* Raw API Rate */}
-                    <td className="py-3 px-3 text-neutral-600 font-mono text-xs">
-                      <div>Mua: <strong className="text-neutral-900">{formatVnd(item.apiBuy || item.baseBuy)}</strong></div>
-                      <div>Bán: <strong className="text-neutral-900">{formatVnd(item.apiSell || item.baseSell)}</strong></div>
-                    </td>
-
-                    {/* Pricing Mode Toggle */}
-                    <td className="py-3 px-3">
-                      {localSettings.pricingMode === 'custom_override' ? (
-                        <span className="inline-block px-2 py-0.5 rounded bg-red-100 text-red-800 font-bold text-xs">
-                          Tự nhập theo chế độ chung
-                        </span>
-                      ) : (
-                        <div className="flex flex-col gap-1">
-                          <label className="inline-flex items-center gap-1.5 text-xs cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={!!item.useCustomPrice}
-                              onChange={(e) => updateItemField(item.id, 'useCustomPrice', e.target.checked)}
-                              className="rounded accent-red-600 cursor-pointer"
-                            />
-                            <span className={item.useCustomPrice ? "text-red-700 font-bold" : "text-neutral-600"}>
-                              Tự nhập giá cố định
-                            </span>
-                          </label>
-
-                          {!item.useCustomPrice && (
-                            <span className="text-[11px] text-neutral-500">
-                              Theo % (+{localSettings.globalProfitOnBuyPercent}% mua, {localSettings.globalSpreadPercent}% bán)
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </td>
-
-                    {/* Final Buy Price */}
-                    <td className="py-3 px-3 text-right">
-                      {(item.useCustomPrice || localSettings.pricingMode === 'custom_override') ? (
-                        <div className="flex items-center justify-end gap-1">
-                          <input
-                            type="number"
-                            step="10000"
-                            value={item.customBuy ?? finalBuy}
-                            onChange={(e) => updateItemField(item.id, 'customBuy', parseFloat(e.target.value) || 0)}
-                            className="w-32 bg-white border-2 border-emerald-500 rounded-lg px-2 py-1 text-right text-emerald-800 font-mono font-black text-xs shadow-xs focus:ring-2 focus:ring-emerald-400 focus:outline-none"
-                          />
-                          <span className="text-[10px] text-neutral-500 font-bold">đ</span>
-                        </div>
-                      ) : (
-                        <div className="font-mono font-black text-blue-700 text-sm">
-                          {formatVnd(finalBuy)} đ
-                        </div>
-                      )}
-                    </td>
-
-                    {/* Final Sell Price */}
-                    <td className="py-3 px-3 text-right">
-                      {(item.useCustomPrice || localSettings.pricingMode === 'custom_override') ? (
-                        <div className="flex items-center justify-end gap-1">
-                          <input
-                            type="number"
-                            step="10000"
-                            value={item.customSell ?? finalSell}
-                            onChange={(e) => updateItemField(item.id, 'customSell', parseFloat(e.target.value) || 0)}
-                            className="w-32 bg-white border-2 border-red-500 rounded-lg px-2 py-1 text-right text-red-700 font-mono font-black text-xs shadow-xs focus:ring-2 focus:ring-red-400 focus:outline-none"
-                          />
-                          <span className="text-[10px] text-neutral-500 font-bold">đ</span>
-                        </div>
-                      ) : (
-                        <div className="font-mono font-black text-red-600 text-sm">
-                          {formatVnd(finalSell)} đ
-                        </div>
-                      )}
-                    </td>
-
-                    {/* Delete Item */}
-                    <td className="py-3 px-3 text-center">
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteItem(item.id)}
-                        title={`Xóa loại vàng ${item.name}`}
-                        className="p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-600 hover:text-white transition-all cursor-pointer shadow-2xs"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* SECTION 3: STORE INFORMATION & PIN SETTINGS */}
-      <div className="bg-white border-2 border-neutral-200 rounded-2xl p-4 sm:p-6 shadow-sm space-y-4">
-        <h3 className="text-base sm:text-lg font-black text-neutral-900 font-serif flex items-center gap-2">
-          <Store className="w-5 h-5 text-red-600" />
-          3. Cài Đặt Thông Tin Tiệm & Màn Hình TV
-        </h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-bold text-neutral-700 mb-1">
-              Tên Tiệm Vàng
-            </label>
-            <input
-              type="text"
-              value={localSettings.storeName}
-              onChange={(e) => setLocalSettings(prev => ({ ...prev, storeName: e.target.value }))}
-              placeholder="TIỆM VÀNG ĐỨC KỲ"
-              className="w-full px-3 py-2 bg-neutral-50 border border-neutral-300 rounded-xl text-neutral-900 text-sm font-bold focus:border-red-600 focus:bg-white focus:outline-none"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-neutral-700 mb-1">
-              Khẩu hiệu / Slogan tiệm
-            </label>
-            <input
-              type="text"
-              value={localSettings.slogan}
-              onChange={(e) => setLocalSettings(prev => ({ ...prev, slogan: e.target.value }))}
-              placeholder="UY TÍN TẠO THƯƠNG HIỆU - GIÁ CẢ MINH BẠCH"
-              className="w-full px-3 py-2 bg-neutral-50 border border-neutral-300 rounded-xl text-neutral-900 text-sm focus:border-red-600 focus:bg-white focus:outline-none"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-neutral-700 mb-1">
-              Số Điện Thoại / Hotline
-            </label>
-            <input
-              type="text"
-              value={localSettings.phone}
-              onChange={(e) => setLocalSettings(prev => ({ ...prev, phone: e.target.value }))}
-              placeholder="0988.666.888 - 024.3888.9999"
-              className="w-full px-3 py-2 bg-neutral-50 border border-neutral-300 rounded-xl text-neutral-900 text-sm focus:border-red-600 focus:bg-white focus:outline-none"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-neutral-700 mb-1">
-              Địa Chỉ Tiệm
-            </label>
-            <input
-              type="text"
-              value={localSettings.address}
-              onChange={(e) => setLocalSettings(prev => ({ ...prev, address: e.target.value }))}
-              placeholder="Số 88 Phố Vàng Bạc, Hoàn Kiếm, Hà Nội"
-              className="w-full px-3 py-2 bg-neutral-50 border border-neutral-300 rounded-xl text-neutral-900 text-sm focus:border-red-600 focus:bg-white focus:outline-none"
-            />
-          </div>
-
-          <div className="md:col-span-2">
-            <label className="block text-xs font-bold text-neutral-700 mb-1">
-              Dòng Chữ Chạy LED Ở Chân Màn Hình TV (Marquee Ticker)
-            </label>
-            <textarea
-              rows={2}
-              value={localSettings.marqueeNotice}
-              onChange={(e) => setLocalSettings(prev => ({ ...prev, marqueeNotice: e.target.value }))}
-              placeholder="Thông báo chúc mừng, bảo hành và cam kết chất lượng..."
-              className="w-full px-3 py-2 bg-neutral-50 border border-neutral-300 rounded-xl text-neutral-900 text-sm focus:border-red-600 focus:bg-white focus:outline-none"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-neutral-700 mb-1">
-              Đổi Mã PIN Quản Trị (Mặc định: 1234)
-            </label>
-            <input
-              type="text"
-              maxLength={8}
-              value={localSettings.adminPin}
-              onChange={(e) => setLocalSettings(prev => ({ ...prev, adminPin: e.target.value }))}
-              className="w-full px-3 py-2 bg-neutral-50 border border-neutral-300 rounded-xl text-red-700 font-mono font-bold text-sm focus:border-red-600 focus:bg-white focus:outline-none"
-            />
-          </div>
-
-          <div className="flex items-center gap-4 pt-4">
-            <label className="inline-flex items-center gap-2 text-xs font-bold text-neutral-700 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={localSettings.showTrendColumn}
-                onChange={(e) => setLocalSettings(prev => ({ ...prev, showTrendColumn: e.target.checked }))}
-                className="rounded accent-red-600 cursor-pointer"
-              />
-              <span>Hiển thị cột Biến Động trong ngày (So với hôm trước)</span>
-            </label>
-
-            <label className="inline-flex items-center gap-2 text-xs font-bold text-neutral-700 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={localSettings.showSpreadColumn}
-                onChange={(e) => setLocalSettings(prev => ({ ...prev, showSpreadColumn: e.target.checked }))}
-                className="rounded accent-red-600 cursor-pointer"
-              />
-              <span>Hiển thị cột Chênh Lệch (Spread)</span>
-            </label>
-          </div>
-        </div>
-
-        <div className="pt-4 border-t border-neutral-200 flex justify-end gap-3">
-          <button
-            type="button"
-            onClick={() => setIsAuthenticated(false)}
-            className="px-4 py-2 rounded-xl bg-neutral-200 hover:bg-neutral-300 text-neutral-700 text-xs font-bold cursor-pointer"
-          >
-            Khóa Cài Đặt (Thoát)
-          </button>
-
-          <button
-            type="button"
-            onClick={handleSaveAll}
-            className="px-6 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black text-sm shadow-md active:scale-95 cursor-pointer"
-          >
-            Lưu Tất Cả Cài Đặt
-          </button>
-        </div>
-      </div>
-
-      {/* Modal: Add New Gold Item */}
-      {showAddModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="w-full max-w-lg bg-white border-2 border-red-600 rounded-2xl p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-neutral-200 pb-3">
-              <h3 className="text-lg font-black text-red-800 font-serif">
-                Thêm Loại Vàng Mới Vào Bảng Giá
+              <h3 className="text-base sm:text-lg font-black text-red-800 font-serif flex items-center gap-2">
+                <Store className="w-5 h-5 text-red-700" />
+                Cài Đặt Màn Hình TV & Thông Tin Cửa Hàng
               </h3>
+              <p className="text-xs text-neutral-600">
+                Tùy chỉnh bố cục hiển thị TV, đơn vị tính, định dạng số và thông tin liên hệ tiệm vàng Đức Kỳ.
+              </p>
+            </div>
+
+            {/* Display Options Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 border-t border-neutral-100 pt-4">
+              
+              {/* Unit Type: Chỉ vs Lượng */}
+              <div className="bg-neutral-50 border border-neutral-200 rounded-2xl p-4 space-y-2">
+                <label className="text-xs font-black text-neutral-800 uppercase tracking-wide flex items-center gap-1.5">
+                  <Coins className="w-4 h-4 text-amber-600" />
+                  Đơn Vị Tính Hiển Thị
+                </label>
+                <p className="text-xs text-neutral-600">
+                  Chọn đơn vị vàng hiển thị chính thức trên TV quầy giao dịch.
+                </p>
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onChangeUnit('chi');
+                      setLocalSettings(prev => ({ ...prev, displayUnit: 'chi' }));
+                    }}
+                    className={`py-2.5 px-3 rounded-xl text-xs font-black transition-all cursor-pointer text-center ${
+                      unit === 'chi'
+                        ? 'bg-red-800 text-white shadow-xs'
+                        : 'bg-white text-neutral-700 border border-neutral-300 hover:bg-neutral-100'
+                    }`}
+                  >
+                    1 Chỉ (Phổ biến nhất)
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onChangeUnit('luong');
+                      setLocalSettings(prev => ({ ...prev, displayUnit: 'luong' }));
+                    }}
+                    className={`py-2.5 px-3 rounded-xl text-xs font-black transition-all cursor-pointer text-center ${
+                      unit === 'luong'
+                        ? 'bg-red-800 text-white shadow-xs'
+                        : 'bg-white text-neutral-700 border border-neutral-300 hover:bg-neutral-100'
+                    }`}
+                  >
+                    1 Lượng (Cây)
+                  </button>
+                </div>
+              </div>
+
+              {/* Layout Mode: 2 Columns vs 1 Column */}
+              <div className="bg-neutral-50 border border-neutral-200 rounded-2xl p-4 space-y-2">
+                <label className="text-xs font-black text-neutral-800 uppercase tracking-wide flex items-center gap-1.5">
+                  <Tv className="w-4 h-4 text-red-600" />
+                  Bố Cục Màn Hình TV
+                </label>
+                <p className="text-xs text-neutral-600">
+                  Chuẩn 2 cột chia đôi màn hình 16:9 giúp khách nhìn rõ toàn bộ không cần cuộn.
+                </p>
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setLocalSettings(prev => ({ ...prev, tvLayoutMode: 'two_col' }))}
+                    className={`py-2.5 px-3 rounded-xl text-xs font-black transition-all cursor-pointer text-center ${
+                      (localSettings.tvLayoutMode || 'two_col') === 'two_col'
+                        ? 'bg-red-800 text-white shadow-xs'
+                        : 'bg-white text-neutral-700 border border-neutral-300 hover:bg-neutral-100'
+                    }`}
+                  >
+                    2 Cột Cân Đối (Chuẩn TV 16:9)
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setLocalSettings(prev => ({ ...prev, tvLayoutMode: 'single_col' }))}
+                    className={`py-2.5 px-3 rounded-xl text-xs font-black transition-all cursor-pointer text-center ${
+                      localSettings.tvLayoutMode === 'single_col'
+                        ? 'bg-red-800 text-white shadow-xs'
+                        : 'bg-white text-neutral-700 border border-neutral-300 hover:bg-neutral-100'
+                    }`}
+                  >
+                    1 Cột Đơn Dài
+                  </button>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Store Information Form */}
+            <div className="border-t border-neutral-100 pt-4 space-y-4">
+              <h4 className="text-sm font-black text-neutral-900 uppercase tracking-wider">
+                Thông Tin Tiệm Vàng Hiển Thị Trên TV & Chữ Chạy
+              </h4>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold text-neutral-700 block mb-1">Tên Tiệm Vàng:</label>
+                  <input
+                    type="text"
+                    value={localSettings.storeName}
+                    onChange={(e) => setLocalSettings(prev => ({ ...prev, storeName: e.target.value }))}
+                    className="w-full px-3 py-2 bg-neutral-50 border border-neutral-300 rounded-xl text-sm font-bold text-neutral-900 focus:outline-none focus:border-red-600 focus:bg-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-neutral-700 block mb-1">Số Điện Thoại / Hotline:</label>
+                  <input
+                    type="text"
+                    value={localSettings.phone}
+                    onChange={(e) => setLocalSettings(prev => ({ ...prev, phone: e.target.value }))}
+                    className="w-full px-3 py-2 bg-neutral-50 border border-neutral-300 rounded-xl text-sm font-bold text-neutral-900 focus:outline-none focus:border-red-600 focus:bg-white"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="text-xs font-bold text-neutral-700 block mb-1">Địa Chỉ Tiệm:</label>
+                  <input
+                    type="text"
+                    value={localSettings.address}
+                    onChange={(e) => setLocalSettings(prev => ({ ...prev, address: e.target.value }))}
+                    className="w-full px-3 py-2 bg-neutral-50 border border-neutral-300 rounded-xl text-sm font-bold text-neutral-900 focus:outline-none focus:border-red-600 focus:bg-white"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Auto-sync Interval */}
+            <div className="border-t border-neutral-100 pt-4">
+              <label className="text-xs font-bold text-neutral-700 block mb-1">
+                Tần Suất Tự Động Làm Mới Giá Từ Thị Trường:
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {[5, 10, 15, 30, 60].map(mins => (
+                  <button
+                    key={mins}
+                    type="button"
+                    onClick={() => setLocalSettings(prev => ({ ...prev, autoSyncIntervalMinutes: mins }))}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      (localSettings.autoSyncIntervalMinutes || 15) === mins
+                        ? 'bg-red-800 text-white font-black shadow-xs'
+                        : 'bg-neutral-100 text-neutral-700 border border-neutral-300 hover:bg-neutral-200'
+                    }`}
+                  >
+                    Mỗi {mins} phút
+                  </button>
+                ))}
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      )}
+
+      {/* =========================================================================
+          STICKY BOTTOM BAR FOR MOBILE: NÚT LƯU LUÔN NỔI BẬT DƯỚI ĐÁY
+         ========================================================================= */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t-2 border-red-700/20 p-3 sm:hidden shadow-2xl flex items-center justify-between gap-3">
+        <button
+          type="button"
+          onClick={onBackToBoard}
+          className="py-2.5 px-3 rounded-xl bg-neutral-100 text-neutral-800 font-extrabold text-xs flex items-center gap-1.5 border border-neutral-300 cursor-pointer"
+        >
+          <Tv className="w-4 h-4 text-red-700" />
+          <span>Về TV</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={handleSaveAll}
+          className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-red-700 to-red-800 text-white font-black text-xs flex items-center justify-center gap-2 shadow-lg active:scale-95 cursor-pointer uppercase tracking-wide"
+        >
+          <Save className="w-4 h-4 text-amber-300" />
+          <span>LƯU & ĐỒNG BỘ LÊN TV NGAY</span>
+        </button>
+      </div>
+
+      {/* MODAL THÊM LOẠI VÀNG MỚI */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl border-2 border-red-700/30 overflow-hidden text-neutral-800 animate-scale-up">
+            <div className="bg-[#B91C1C] text-white px-5 py-3.5 flex items-center justify-between border-b-2 border-amber-400">
+              <div className="flex items-center gap-2 font-black text-sm uppercase font-serif">
+                <Plus className="w-4 h-4 text-amber-300" />
+                <span>Thêm Loại Vàng Riêng Của Tiệm</span>
+              </div>
               <button
                 type="button"
                 onClick={() => setShowAddModal(false)}
-                className="text-neutral-400 hover:text-neutral-700 text-2xl font-bold cursor-pointer"
+                className="w-7 h-7 rounded-lg bg-red-900/60 hover:bg-red-800 text-white flex items-center justify-center cursor-pointer"
               >
-                &times;
+                ✕
               </button>
             </div>
 
-            <form onSubmit={handleAddNewItem} className="space-y-4">
+            <form onSubmit={handleAddNewItem} className="p-5 space-y-3.5 text-xs">
               <div>
-                <label className="block text-xs font-bold text-neutral-700 mb-1">
-                  Tên Loại Vàng *
-                </label>
+                <label className="font-bold text-neutral-700 block mb-1">Tên loại vàng (Ví dụ: Vàng Ta 9999 Tiệm Đức Kỳ):</label>
                 <input
                   type="text"
                   required
-                  value={newItemName}
-                  onChange={(e) => setNewItemName(e.target.value)}
-                  placeholder="Ví dụ: Vàng Tây 18K Đính Đá, Kiềng Cưới 24K..."
-                  className="w-full px-3 py-2 bg-neutral-50 border border-neutral-300 rounded-xl text-neutral-900 text-sm focus:border-red-600 focus:outline-none"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder="Nhập tên loại vàng..."
+                  className="w-full px-3 py-2 border border-neutral-300 rounded-xl font-bold text-sm focus:outline-none focus:border-red-600"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-neutral-700 mb-1">
-                    Thương Hiệu
-                  </label>
+                  <label className="font-bold text-neutral-700 block mb-1">Thương hiệu:</label>
                   <select
-                    value={newItemBrand}
-                    onChange={(e) => setNewItemBrand(e.target.value as any)}
-                    className="w-full px-3 py-2 bg-neutral-50 border border-neutral-300 rounded-xl text-neutral-900 text-sm focus:border-red-600 focus:outline-none cursor-pointer"
+                    value={newBrand}
+                    onChange={(e: any) => setNewBrand(e.target.value)}
+                    className="w-full px-3 py-2 border border-neutral-300 rounded-xl font-bold focus:outline-none"
                   >
-                    <option value="TIỆM">Tiệm Đức Kỳ</option>
+                    <option value="TIỆM">TIỆM</option>
                     <option value="SJC">SJC</option>
                     <option value="PNJ">PNJ</option>
                     <option value="DOJI">DOJI</option>
@@ -907,75 +1080,52 @@ export const OwnerAdmin: React.FC<OwnerAdminProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-neutral-700 mb-1">
-                    Tuổi Vàng / Hàm Lượng
-                  </label>
+                  <label className="font-bold text-neutral-700 block mb-1">Hàm lượng vàng:</label>
                   <input
                     type="text"
-                    value={newItemPurity}
-                    onChange={(e) => setNewItemPurity(e.target.value)}
-                    placeholder="Ví dụ: 99.99%, 75.00%..."
-                    className="w-full px-3 py-2 bg-neutral-50 border border-neutral-300 rounded-xl text-neutral-900 text-sm focus:border-red-600 focus:outline-none"
+                    value={newPurity}
+                    onChange={(e) => setNewPurity(e.target.value)}
+                    className="w-full px-3 py-2 border border-neutral-300 rounded-xl font-bold focus:outline-none"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-emerald-700 mb-1">
-                    Giá Gốc Thu Mua (đ/lượng)
-                  </label>
+                  <label className="font-bold text-neutral-700 block mb-1">Giá mua gốc (đ/lượng):</label>
                   <input
                     type="number"
-                    step="10000"
-                    required
-                    value={newItemApiBuy}
-                    onChange={(e) => setNewItemApiBuy(parseFloat(e.target.value) || 0)}
-                    className="w-full px-3 py-2 bg-neutral-50 border border-emerald-300 rounded-xl text-emerald-800 font-mono font-bold text-sm focus:outline-none"
+                    value={newBuyPrice}
+                    onChange={(e) => setNewBuyPrice(parseFloat(e.target.value) || 0)}
+                    className="w-full px-3 py-2 border border-neutral-300 rounded-xl font-bold font-mono focus:outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-red-700 mb-1">
-                    Giá Gốc Bán Ra (đ/lượng)
-                  </label>
+                  <label className="font-bold text-neutral-700 block mb-1">Giá bán gốc (đ/lượng):</label>
                   <input
                     type="number"
-                    step="10000"
-                    required
-                    value={newItemApiSell}
-                    onChange={(e) => setNewItemApiSell(parseFloat(e.target.value) || 0)}
-                    className="w-full px-3 py-2 bg-neutral-50 border border-red-300 rounded-xl text-red-700 font-mono font-bold text-sm focus:outline-none"
+                    value={newSellPrice}
+                    onChange={(e) => setNewSellPrice(parseFloat(e.target.value) || 0)}
+                    className="w-full px-3 py-2 border border-neutral-300 rounded-xl font-bold font-mono focus:outline-none"
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-neutral-700 mb-1">
-                  Ghi chú mô tả (Tùy chọn)
-                </label>
-                <input
-                  type="text"
-                  value={newItemNote}
-                  onChange={(e) => setNewItemNote(e.target.value)}
-                  placeholder="Ví dụ: Trang sức vàng cưới Đức Kỳ, bảo hành làm sáng miễn phí..."
-                  className="w-full px-3 py-2 bg-neutral-50 border border-neutral-300 rounded-xl text-neutral-900 text-sm focus:border-red-600 focus:outline-none"
-                />
-              </div>
-
-              <div className="flex justify-end gap-3 pt-3 border-t border-neutral-200">
+              <div className="pt-3 border-t border-neutral-100 flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 rounded-xl bg-neutral-200 text-neutral-700 text-xs font-bold cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-neutral-100 text-neutral-700 font-bold cursor-pointer"
                 >
-                  Hủy bỏ
+                  Hủy
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-red-600 text-white font-black text-xs shadow-md cursor-pointer"
+                  className="px-5 py-2 rounded-xl bg-red-800 hover:bg-red-700 text-white font-black flex items-center gap-1.5 shadow-md cursor-pointer"
                 >
-                  Thêm Vào Bảng Giá
+                  <Plus className="w-4 h-4" />
+                  <span>Lưu Loại Vàng</span>
                 </button>
               </div>
             </form>
