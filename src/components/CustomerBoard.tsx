@@ -19,6 +19,7 @@ import { GoldItem, StoreSettings, UnitType } from '../types';
 import { calculateStorePrices, convertPriceByUnit } from '../utils/goldMath';
 import { ThemeAtmosphere } from './ThemeAtmosphere';
 import { getThemeById } from '../data/themesData';
+import { WorldGoldTicker } from './WorldGoldTicker';
 
 interface CustomerBoardProps {
   items: GoldItem[];
@@ -324,6 +325,7 @@ export const CustomerBoard: React.FC<CustomerBoardProps> = ({
         effectEnabled={effectEnabled}
         intensity={effectIntensity}
         showCorners={showCorners}
+        cornerSize={settings.tvThemeCornerSize || 'large'}
       />
 
       {/* 0. SLIM BANNER TRÊN MOBILE DÀNH CHO CHỦ TIỆM ĐỔI GIÁ (Không bị che khuất) */}
@@ -343,25 +345,25 @@ export const CustomerBoard: React.FC<CustomerBoardProps> = ({
       </div>
 
       {/* 1. TOP MASTER HEADER: Tên Tiệm Vàng, Slogan ở giữa & Nút Quản Trị Răng Cưa Tối Giản */}
-      <header className="w-full bg-white border-b-2 border-amber-300/80 px-2 sm:px-4 md:px-5 py-1.5 sm:py-2 shadow-xs flex-shrink-0 z-20">
+      <header className="w-full bg-white border-b-2 border-amber-300/80 px-2 sm:px-4 md:px-5 py-1.5 sm:py-2 shadow-xs flex-shrink-0 relative z-40">
         <div className="w-full flex items-center justify-between gap-2 sm:gap-4">
           
-          {/* Left: Brand Crest & Store Name (Đầy đủ 100% không giới hạn chiều rộng, tự co giãn chữ chuẩn TV) */}
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          {/* Left: Brand Crest & Store Name (flex-shrink-0 BẢO ĐẢM 100% KHÔNG BAO GIỜ BỊ CHE HOẶC BỊ CO ÉP) */}
+          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 z-10">
             <div className="w-9 h-9 sm:w-11 sm:h-11 md:w-12 md:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br from-amber-400 via-yellow-400 to-amber-600 p-0.5 shadow-md flex-shrink-0">
               <div className="w-full h-full bg-red-900 rounded-[10px] sm:rounded-[12px] flex items-center justify-center text-amber-300 font-serif font-black text-sm sm:text-lg md:text-xl tracking-wider shadow-inner">
                 {getInitials(storeName)}
               </div>
             </div>
 
-            <div className="flex flex-col justify-center min-w-0">
+            <div className="flex flex-col justify-center">
               {/* Dòng 1: Tên Công Ty / Tiệm Vàng to đẹp, hiển thị trọn vẹn 100% không bao giờ bị cắt chữ */}
-              <div className="flex items-center gap-2 min-w-0">
+              <div className="flex items-center gap-2">
                 <h1 className={`${getStoreNameFontSize(storeName)} font-black font-serif uppercase tracking-wide text-red-800 leading-tight whitespace-nowrap drop-shadow-2xs`}>
                   {storeName}
                 </h1>
                 {currentTheme.id !== 'none' && currentTheme.badgeText && (
-                  <span className={`hidden xl:inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${currentTheme.badgeBg} flex-shrink-0 whitespace-nowrap shadow-2xs`}>
+                  <span className={`hidden 2xl:inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${currentTheme.badgeBg} flex-shrink-0 whitespace-nowrap shadow-2xs`}>
                     <span>{currentTheme.icon}</span>
                     <span>{currentTheme.badgeText}</span>
                   </span>
@@ -369,7 +371,7 @@ export const CustomerBoard: React.FC<CustomerBoardProps> = ({
               </div>
               
               {/* Dòng 2: Địa chỉ, Số hotline */}
-              <div className="flex items-center gap-2 text-[11px] sm:text-xs text-neutral-700 font-bold mt-0.5 whitespace-nowrap overflow-hidden">
+              <div className="flex items-center gap-2 text-[11px] sm:text-xs text-neutral-700 font-bold mt-0.5 whitespace-nowrap">
                 <span className="flex items-center gap-1 text-neutral-800 whitespace-nowrap flex-shrink-0">
                   <MapPin className="w-3 h-3 text-red-700 flex-shrink-0" />
                   <span>{storeAddress}</span>
@@ -383,19 +385,26 @@ export const CustomerBoard: React.FC<CustomerBoardProps> = ({
             </div>
           </div>
 
-          {/* Center: Bảng khẩu hiệu Slogan kết hợp phong vị Tết / Mùa */}
-          <div className="hidden md:flex items-center justify-center px-1 lg:px-3 flex-shrink-0">
-            <div className="inline-flex items-center gap-2 px-3.5 sm:px-4 py-1 sm:py-1.5 rounded-xl bg-gradient-to-r from-red-950 via-[#B91C1C] to-red-950 text-amber-300 border border-amber-400 shadow-md">
+          {/* Center: Bảng khẩu hiệu Slogan (Tự co giãn hoặc ẩn khi màn hình hẹp để ưu tiên tên tiệm và giá vàng) */}
+          <div className="hidden xl:flex items-center justify-center px-1 lg:px-2 flex-1 min-w-0">
+            <div className="inline-flex items-center gap-2 px-3 sm:px-3.5 py-1 sm:py-1.5 rounded-xl bg-gradient-to-r from-red-950 via-[#B91C1C] to-red-950 text-amber-300 border border-amber-400 shadow-md flex-shrink truncate">
               {currentTheme.id !== 'none' && <span className="text-amber-400 font-bold text-xs">{currentTheme.icon}</span>}
-              <span className="font-serif font-black text-xs sm:text-sm lg:text-base uppercase tracking-widest text-amber-200 drop-shadow-sm whitespace-nowrap">
+              <span className="font-serif font-black text-xs sm:text-sm uppercase tracking-widest text-amber-200 drop-shadow-sm whitespace-nowrap truncate">
                 {settings.slogan || currentTheme.sloganTag}
               </span>
               {currentTheme.id !== 'none' && <span className="text-amber-400 font-bold text-xs">{currentTheme.icon}</span>}
             </div>
           </div>
 
-          {/* Right: Đồng Hồ, Toàn Màn Hình & Nút Răng Cưa Tối Giản Nhất (Chỉ có bánh răng nhỏ nhắn) */}
-          <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+          {/* Right: Giá Vàng Thế Giới Realtime (Investing.com), Đồng Hồ, TV Zoom & Cài Đặt */}
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0 ml-auto">
+            {/* Real-time World Gold Price Ticker (Chỉ gồm số to rõ và tăng giảm, cực gọn gàng) */}
+            {settings.showWorldGoldPrice !== false && (
+              <div className="flex-shrink-0">
+                <WorldGoldTicker variant="header" />
+              </div>
+            )}
+
             {/* Live Clock */}
             <div className="bg-neutral-100 border border-neutral-200 rounded-lg sm:rounded-xl px-2 sm:px-3 py-1 text-right">
               <div className="text-xs sm:text-sm md:text-base font-black text-neutral-900 tracking-tight font-mono leading-none">
@@ -454,8 +463,8 @@ export const CustomerBoard: React.FC<CustomerBoardProps> = ({
         </div>
       </header>
 
-      {/* 2. MAIN TV GOLD BOARD (Khớp vừa vặn 100% màn hình TV, không bao giờ cuộn hay tràn) */}
-      <main className="flex-1 min-h-0 w-full p-1.5 sm:p-2 md:p-2.5 overflow-hidden flex flex-col justify-stretch">
+      {/* 2. MAIN TV GOLD BOARD (Có lề viền 2 bên chuẩn để cành hoa nằm gọn ở 2 viền ngoài, chữ và bảng giá bên trong hoàn toàn thông thoáng) */}
+      <main className="flex-1 min-h-0 w-full px-2.5 sm:px-5 md:px-12 lg:px-16 xl:px-20 py-1.5 sm:py-2 overflow-hidden flex flex-col justify-stretch relative z-10">
         {visibleItems.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center bg-white rounded-2xl border border-neutral-200 text-neutral-500 font-bold text-base gap-3">
             <span>Chưa có loại vàng nào trong danh sách hiển thị.</span>

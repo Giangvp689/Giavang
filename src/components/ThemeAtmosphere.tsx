@@ -6,6 +6,7 @@ interface ThemeAtmosphereProps {
   effectEnabled?: boolean;
   intensity?: 'light' | 'normal' | 'rich';
   showCorners?: boolean;
+  cornerSize?: 'normal' | 'large' | 'extralarge';
   isMiniPreview?: boolean;
 }
 
@@ -35,6 +36,7 @@ export const ThemeAtmosphere: React.FC<ThemeAtmosphereProps> = ({
   effectEnabled = true,
   intensity = 'normal',
   showCorners = true,
+  cornerSize = 'large',
   isMiniPreview = false,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -43,13 +45,11 @@ export const ThemeAtmosphere: React.FC<ThemeAtmosphereProps> = ({
     ? (themeId as TvThemeId)
     : 'tet';
 
-  // If theme is 'none', do not render any atmosphere or corners
-  if (safeThemeId === 'none') {
-    return null;
-  }
+  const safeCornerSize: 'normal' | 'large' | 'extralarge' =
+    (cornerSize === 'normal' || cornerSize === 'extralarge') ? cornerSize : 'large';
 
   useEffect(() => {
-    if (!effectEnabled) return;
+    if (!effectEnabled || safeThemeId === 'none') return;
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -579,6 +579,11 @@ export const ThemeAtmosphere: React.FC<ThemeAtmosphereProps> = ({
     };
   }, [safeThemeId, effectEnabled, intensity, isMiniPreview]);
 
+  // If theme is 'none', do not render any canvas or corners
+  if (safeThemeId === 'none') {
+    return null;
+  }
+
   return (
     <div
       className={`pointer-events-none overflow-hidden select-none ${
@@ -593,17 +598,17 @@ export const ThemeAtmosphere: React.FC<ThemeAtmosphereProps> = ({
         />
       )}
 
-      {/* 2. Vector Corner Atmosphere Accents */}
+      {/* 2. Vector Side Border Atmosphere Accents (Nằm gọn gàng ở 2 bên viền màn hình, không che chữ bảng giá) */}
       {showCorners && (
         <>
-          {/* Top Left Corner */}
-          <div className="absolute top-0 left-0 pointer-events-none transition-transform duration-500 origin-top-left">
-            {renderCornerDecoration(safeThemeId, 'top-left', isMiniPreview)}
+          {/* Left Border Decoration */}
+          <div className="absolute top-12 sm:top-14 md:top-16 left-0 pointer-events-none transition-transform duration-500 origin-top-left z-0">
+            {renderCornerDecoration(safeThemeId, 'top-left', isMiniPreview, safeCornerSize)}
           </div>
 
-          {/* Top Right Corner */}
-          <div className="absolute top-0 right-0 pointer-events-none transition-transform duration-500 origin-top-right">
-            {renderCornerDecoration(safeThemeId, 'top-right', isMiniPreview)}
+          {/* Right Border Decoration */}
+          <div className="absolute top-12 sm:top-14 md:top-16 right-0 pointer-events-none transition-transform duration-500 origin-top-right z-0">
+            {renderCornerDecoration(safeThemeId, 'top-right', isMiniPreview, safeCornerSize)}
           </div>
         </>
       )}
@@ -611,86 +616,216 @@ export const ThemeAtmosphere: React.FC<ThemeAtmosphereProps> = ({
   );
 };
 
-// Corner Vector SVG renderer for each theme
+// Side Border Vector SVG renderer for each theme (Thon gọn buông dọc 2 viền, không lấn vào bảng giá)
 function renderCornerDecoration(
   themeId: TvThemeId,
   position: 'top-left' | 'top-right',
-  isMini: boolean
+  isMini: boolean,
+  cornerSize: 'normal' | 'large' | 'extralarge' = 'large'
 ) {
-  // If 'none', no corner decoration
+  // If 'none', no decoration
   if (themeId === 'none') {
     return null;
   }
 
   const isRight = position === 'top-right';
-  const scaleClass = isMini ? 'w-16 h-16 sm:w-20 sm:h-20' : 'w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44 lg:w-52 lg:h-52';
+
+  // Slender vertical border dimensions: tall and narrow to hug the outer edge ("2 viền")
+  let scaleClass = 'w-12 h-72 sm:w-14 sm:h-80 md:w-18 md:h-[390px] lg:w-22 lg:h-[430px] xl:w-26 xl:h-[470px]';
+  if (isMini) {
+    scaleClass = 'w-7 h-28 sm:w-8 sm:h-36';
+  } else if (cornerSize === 'extralarge') {
+    scaleClass = 'w-14 h-80 sm:w-16 sm:h-96 md:w-20 md:h-[430px] lg:w-26 lg:h-[480px] xl:w-30 xl:h-[530px]';
+  } else if (cornerSize === 'normal') {
+    scaleClass = 'w-10 h-60 sm:w-12 sm:h-72 md:w-14 md:h-80 lg:w-18 lg:h-[370px]';
+  }
 
   if (themeId === 'tet') {
-    // Cành Đào Hồng (Trái) & Cành Mai Vàng (Phải) cho Tết
+    // Cành Đào Hồng (Viền Trái) & Cành Mai Vàng (Viền Phải) buông rủ dọc 2 bên viền TV
     return (
       <svg
-        viewBox="0 0 200 200"
-        className={`${scaleClass} drop-shadow-md transition-all ${isRight ? '-scale-x-100' : ''}`}
+        viewBox="0 0 100 440"
+        className={`${scaleClass} drop-shadow-[0_8px_16px_rgba(0,0,0,0.25)] transition-all ${isRight ? '-scale-x-100' : ''}`}
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
       >
+        {/* Main Gnarled Vertical Trunk hugging the border edge */}
         <path
-          d="M0 0 C 40 25, 90 40, 140 30 C 160 25, 180 45, 195 55 M 70 35 C 90 70, 120 95, 145 110 M 110 85 C 130 115, 145 135, 155 145"
-          stroke="#5c3817"
-          strokeWidth="6"
+          d="M 0 0 C 18 20, 26 55, 24 95 C 20 135, 36 175, 28 220 C 20 265, 34 310, 22 360 C 14 395, 26 415, 18 435 M 24 95 C 44 112, 55 138, 50 165 M 28 200 C 50 216, 60 245, 48 275 M 15 45 C 32 58, 42 78, 36 100"
+          stroke="#451a03"
+          strokeWidth="7"
+          strokeLinecap="round"
+        />
+        {/* Bark Highlights */}
+        <path
+          d="M 0 0 C 18 20, 26 55, 24 95 C 20 135, 36 175, 28 220 M 24 95 C 44 112, 55 138, 50 165"
+          stroke="#78350f"
+          strokeWidth="3.5"
           strokeLinecap="round"
         />
         <path
-          d="M30 18 C 50 40, 60 70, 75 85"
-          stroke="#78471e"
-          strokeWidth="3.5"
+          d="M 5 10 C 16 35, 22 75, 20 110"
+          stroke="#b45309"
+          strokeWidth="1.5"
           strokeLinecap="round"
         />
 
         {isRight ? (
-          // Mai vàng
+          // MAI VÀNG PHÚ QUÝ (Viền Phải: Mai vàng 5 cánh, nụ xanh, liễn LỘC, đồng tiền cổ)
           <>
-            <circle cx="140" cy="30" r="10" fill="#fbbf24" stroke="#d97706" strokeWidth="1.5" />
-            <circle cx="140" cy="30" r="4" fill="#ef4444" />
-            <circle cx="195" cy="55" r="8" fill="#facc15" stroke="#d97706" strokeWidth="1.5" />
-            <circle cx="195" cy="55" r="3" fill="#dc2626" />
-            <circle cx="145" cy="110" r="9" fill="#fbbf24" stroke="#d97706" strokeWidth="1.5" />
-            <circle cx="145" cy="110" r="3.5" fill="#ef4444" />
-            <circle cx="155" cy="145" r="7" fill="#facc15" stroke="#d97706" strokeWidth="1.5" />
-            <circle cx="75" cy="85" r="8" fill="#fbbf24" stroke="#d97706" strokeWidth="1.5" />
-            <circle cx="75" cy="85" r="3" fill="#dc2626" />
-            <circle cx="110" cy="25" r="4" fill="#22c55e" />
-            <circle cx="170" cy="40" r="4" fill="#22c55e" />
-            <circle cx="130" cy="95" r="4" fill="#22c55e" />
-            <g transform="translate(145, 110)">
-              <line x1="0" y1="0" x2="0" y2="25" stroke="#dc2626" strokeWidth="2" />
-              <rect x="-8" y="25" width="16" height="20" rx="4" fill="#dc2626" stroke="#facc15" strokeWidth="1.5" />
-              <line x1="-8" y1="35" x2="8" y2="35" stroke="#facc15" strokeWidth="1" />
-              <text x="0" y="39" fill="#fef08a" fontSize="9" fontWeight="900" textAnchor="middle">LỘC</text>
-              <line x1="0" y1="45" x2="0" y2="58" stroke="#facc15" strokeWidth="2" />
+            {/* Blossom 1 - Upper */}
+            <g transform="translate(24, 55)">
+              <circle cx="-8" cy="0" r="9" fill="#facc15" stroke="#d97706" strokeWidth="1.2" />
+              <circle cx="8" cy="0" r="9" fill="#facc15" stroke="#d97706" strokeWidth="1.2" />
+              <circle cx="0" cy="-8" r="9" fill="#facc15" stroke="#d97706" strokeWidth="1.2" />
+              <circle cx="-5" cy="6" r="9" fill="#fbbf24" stroke="#d97706" strokeWidth="1.2" />
+              <circle cx="5" cy="6" r="9" fill="#fbbf24" stroke="#d97706" strokeWidth="1.2" />
+              <circle cx="0" cy="0" r="5" fill="#dc2626" />
+              <circle cx="0" cy="0" r="2.5" fill="#fef08a" />
+            </g>
+
+            {/* Blossom 2 - Mid Twig */}
+            <g transform="translate(50, 160) scale(0.95)">
+              <circle cx="-7" cy="0" r="8" fill="#facc15" stroke="#d97706" strokeWidth="1.2" />
+              <circle cx="7" cy="0" r="8" fill="#facc15" stroke="#d97706" strokeWidth="1.2" />
+              <circle cx="0" cy="-7" r="8" fill="#facc15" stroke="#d97706" strokeWidth="1.2" />
+              <circle cx="-4" cy="5" r="8" fill="#fbbf24" stroke="#d97706" strokeWidth="1.2" />
+              <circle cx="4" cy="5" r="8" fill="#fbbf24" stroke="#d97706" strokeWidth="1.2" />
+              <circle cx="0" cy="0" r="4.5" fill="#dc2626" />
+              <circle cx="0" cy="0" r="2" fill="#fef08a" />
+            </g>
+
+            {/* Blossom 3 - Center Branch */}
+            <g transform="translate(28, 220) scale(0.9)">
+              <circle cx="-7" cy="0" r="8" fill="#facc15" stroke="#d97706" strokeWidth="1.2" />
+              <circle cx="7" cy="0" r="8" fill="#facc15" stroke="#d97706" strokeWidth="1.2" />
+              <circle cx="0" cy="-7" r="8" fill="#facc15" stroke="#d97706" strokeWidth="1.2" />
+              <circle cx="-4" cy="5" r="8" fill="#fbbf24" stroke="#d97706" strokeWidth="1.2" />
+              <circle cx="4" cy="5" r="8" fill="#fbbf24" stroke="#d97706" strokeWidth="1.2" />
+              <circle cx="0" cy="0" r="4" fill="#dc2626" />
+            </g>
+
+            {/* Blossom 4 - Lower Twig */}
+            <g transform="translate(48, 275) scale(0.85)">
+              <circle cx="-6" cy="0" r="7" fill="#fde047" stroke="#d97706" strokeWidth="1" />
+              <circle cx="6" cy="0" r="7" fill="#fde047" stroke="#d97706" strokeWidth="1" />
+              <circle cx="0" cy="-6" r="7" fill="#fde047" stroke="#d97706" strokeWidth="1" />
+              <circle cx="-4" cy="5" r="7" fill="#facc15" stroke="#d97706" strokeWidth="1" />
+              <circle cx="4" cy="5" r="7" fill="#facc15" stroke="#d97706" strokeWidth="1" />
+              <circle cx="0" cy="0" r="3.5" fill="#dc2626" />
+            </g>
+
+            {/* Blossom 5 - Bottom Cascade */}
+            <g transform="translate(22, 360) scale(0.8)">
+              <circle cx="-6" cy="0" r="7" fill="#facc15" stroke="#d97706" strokeWidth="1" />
+              <circle cx="6" cy="0" r="7" fill="#facc15" stroke="#d97706" strokeWidth="1" />
+              <circle cx="0" cy="-6" r="7" fill="#facc15" stroke="#d97706" strokeWidth="1" />
+              <circle cx="-4" cy="5" r="7" fill="#fbbf24" stroke="#d97706" strokeWidth="1" />
+              <circle cx="4" cy="5" r="7" fill="#fbbf24" stroke="#d97706" strokeWidth="1" />
+              <circle cx="0" cy="0" r="3.5" fill="#dc2626" />
+            </g>
+
+            {/* Green Buds along border */}
+            <circle cx="34" cy="30" r="4.5" fill="#22c55e" stroke="#15803d" strokeWidth="1" />
+            <circle cx="56" cy="130" r="4" fill="#4ade80" stroke="#16a34a" strokeWidth="1" />
+            <circle cx="36" cy="180" r="4.5" fill="#22c55e" stroke="#15803d" strokeWidth="1" />
+            <circle cx="52" cy="245" r="4" fill="#4ade80" stroke="#16a34a" strokeWidth="1" />
+            <circle cx="28" cy="320" r="4" fill="#22c55e" stroke="#15803d" strokeWidth="1" />
+            <circle cx="18" cy="420" r="3.5" fill="#4ade80" stroke="#16a34a" strokeWidth="1" />
+
+            {/* Hanging Lucky Red Packet "LỘC" */}
+            <g transform="translate(48, 275)">
+              <line x1="0" y1="0" x2="0" y2="24" stroke="#b91c1c" strokeWidth="1.5" />
+              <rect x="-9" y="24" width="18" height="24" rx="3.5" fill="#dc2626" stroke="#fbbf24" strokeWidth="1.5" />
+              <circle cx="0" cy="36" r="6" fill="#b91c1c" />
+              <text x="0" y="39" fill="#fef08a" fontSize="8" fontWeight="900" textAnchor="middle" fontFamily="serif">LỘC</text>
+              <line x1="0" y1="48" x2="0" y2="60" stroke="#fbbf24" strokeWidth="2" />
+              <circle cx="0" cy="61" r="2" fill="#d97706" />
+            </g>
+
+            {/* Gold coin */}
+            <g transform="translate(32, 115)">
+              <circle cx="0" cy="0" r="7" fill="#facc15" stroke="#b45309" strokeWidth="1.5" />
+              <rect x="-2.5" y="-2.5" width="5" height="5" fill="#78350f" rx="0.5" />
             </g>
           </>
         ) : (
-          // Đào hồng
+          // ĐÀO HỒNG TẾT (Viền Trái: Cành đào hồng phấn buông dọc viền, liễn XUÂN, lộc biếc)
           <>
-            <circle cx="140" cy="30" r="10" fill="#fb7185" stroke="#e11d48" strokeWidth="1.5" />
-            <circle cx="140" cy="30" r="4" fill="#fef08a" />
-            <circle cx="195" cy="55" r="8" fill="#fda4af" stroke="#e11d48" strokeWidth="1.5" />
-            <circle cx="195" cy="55" r="3" fill="#fef08a" />
-            <circle cx="145" cy="110" r="9" fill="#fb7185" stroke="#e11d48" strokeWidth="1.5" />
-            <circle cx="145" cy="110" r="3.5" fill="#fef08a" />
-            <circle cx="155" cy="145" r="7" fill="#f43f5e" stroke="#e11d48" strokeWidth="1.5" />
-            <circle cx="75" cy="85" r="8" fill="#fda4af" stroke="#e11d48" strokeWidth="1.5" />
-            <circle cx="75" cy="85" r="3" fill="#fef08a" />
-            <circle cx="110" cy="25" r="4" fill="#4ade80" />
-            <circle cx="170" cy="40" r="4" fill="#4ade80" />
-            <circle cx="130" cy="95" r="4" fill="#4ade80" />
-            <g transform="translate(145, 110)">
-              <line x1="0" y1="0" x2="0" y2="25" stroke="#dc2626" strokeWidth="2" />
-              <rect x="-8" y="25" width="16" height="20" rx="4" fill="#b91c1c" stroke="#facc15" strokeWidth="1.5" />
-              <line x1="-8" y1="35" x2="8" y2="35" stroke="#facc15" strokeWidth="1" />
-              <text x="0" y="39" fill="#fef08a" fontSize="9" fontWeight="900" textAnchor="middle">XUÂN</text>
-              <line x1="0" y1="45" x2="0" y2="58" stroke="#facc15" strokeWidth="2" />
+            {/* Blossom 1 - Upper */}
+            <g transform="translate(24, 55)">
+              <circle cx="-8" cy="0" r="9" fill="#fb7185" stroke="#e11d48" strokeWidth="1.2" />
+              <circle cx="8" cy="0" r="9" fill="#fb7185" stroke="#e11d48" strokeWidth="1.2" />
+              <circle cx="0" cy="-8" r="9" fill="#fb7185" stroke="#e11d48" strokeWidth="1.2" />
+              <circle cx="-5" cy="6" r="9" fill="#f43f5e" stroke="#e11d48" strokeWidth="1.2" />
+              <circle cx="5" cy="6" r="9" fill="#f43f5e" stroke="#e11d48" strokeWidth="1.2" />
+              <circle cx="0" cy="0" r="5" fill="#be123c" />
+              <circle cx="0" cy="0" r="2.5" fill="#fef08a" />
+            </g>
+
+            {/* Blossom 2 - Mid Twig */}
+            <g transform="translate(50, 160) scale(0.95)">
+              <circle cx="-7" cy="0" r="8" fill="#fb7185" stroke="#e11d48" strokeWidth="1.2" />
+              <circle cx="7" cy="0" r="8" fill="#fb7185" stroke="#e11d48" strokeWidth="1.2" />
+              <circle cx="0" cy="-7" r="8" fill="#fb7185" stroke="#e11d48" strokeWidth="1.2" />
+              <circle cx="-4" cy="5" r="8" fill="#f43f5e" stroke="#e11d48" strokeWidth="1.2" />
+              <circle cx="4" cy="5" r="8" fill="#f43f5e" stroke="#e11d48" strokeWidth="1.2" />
+              <circle cx="0" cy="0" r="4.5" fill="#be123c" />
+              <circle cx="0" cy="0" r="2" fill="#fef08a" />
+            </g>
+
+            {/* Blossom 3 - Center Branch */}
+            <g transform="translate(28, 220) scale(0.9)">
+              <circle cx="-7" cy="0" r="8" fill="#fb7185" stroke="#e11d48" strokeWidth="1.2" />
+              <circle cx="7" cy="0" r="8" fill="#fb7185" stroke="#e11d48" strokeWidth="1.2" />
+              <circle cx="0" cy="-7" r="8" fill="#fb7185" stroke="#e11d48" strokeWidth="1.2" />
+              <circle cx="-4" cy="5" r="8" fill="#f43f5e" stroke="#e11d48" strokeWidth="1.2" />
+              <circle cx="4" cy="5" r="8" fill="#f43f5e" stroke="#e11d48" strokeWidth="1.2" />
+              <circle cx="0" cy="0" r="4" fill="#be123c" />
+            </g>
+
+            {/* Blossom 4 - Lower Twig */}
+            <g transform="translate(48, 275) scale(0.85)">
+              <circle cx="-6" cy="0" r="7" fill="#fda4af" stroke="#e11d48" strokeWidth="1" />
+              <circle cx="6" cy="0" r="7" fill="#fda4af" stroke="#e11d48" strokeWidth="1" />
+              <circle cx="0" cy="-6" r="7" fill="#fda4af" stroke="#e11d48" strokeWidth="1" />
+              <circle cx="-4" cy="5" r="7" fill="#fb7185" stroke="#e11d48" strokeWidth="1" />
+              <circle cx="4" cy="5" r="7" fill="#fb7185" stroke="#e11d48" strokeWidth="1" />
+              <circle cx="0" cy="0" r="3.5" fill="#be123c" />
+            </g>
+
+            {/* Blossom 5 - Bottom Cascade */}
+            <g transform="translate(22, 360) scale(0.8)">
+              <circle cx="-6" cy="0" r="7" fill="#fb7185" stroke="#e11d48" strokeWidth="1" />
+              <circle cx="6" cy="0" r="7" fill="#fb7185" stroke="#e11d48" strokeWidth="1" />
+              <circle cx="0" cy="-6" r="7" fill="#fb7185" stroke="#e11d48" strokeWidth="1" />
+              <circle cx="-4" cy="5" r="7" fill="#f43f5e" stroke="#e11d48" strokeWidth="1" />
+              <circle cx="4" cy="5" r="7" fill="#f43f5e" stroke="#e11d48" strokeWidth="1" />
+              <circle cx="0" cy="0" r="3.5" fill="#be123c" />
+            </g>
+
+            {/* Green Buds along border */}
+            <circle cx="34" cy="30" r="4.5" fill="#4ade80" stroke="#16a34a" strokeWidth="1" />
+            <circle cx="56" cy="130" r="4" fill="#22c55e" stroke="#15803d" strokeWidth="1" />
+            <circle cx="36" cy="180" r="4.5" fill="#4ade80" stroke="#16a34a" strokeWidth="1" />
+            <circle cx="52" cy="245" r="4" fill="#22c55e" stroke="#15803d" strokeWidth="1" />
+            <circle cx="28" cy="320" r="4" fill="#4ade80" stroke="#16a34a" strokeWidth="1" />
+            <circle cx="18" cy="420" r="3.5" fill="#22c55e" stroke="#15803d" strokeWidth="1" />
+
+            {/* Hanging Auspicious Red Packet "XUÂN" */}
+            <g transform="translate(48, 275)">
+              <line x1="0" y1="0" x2="0" y2="24" stroke="#b91c1c" strokeWidth="1.5" />
+              <rect x="-9" y="24" width="18" height="24" rx="3.5" fill="#b91c1c" stroke="#fbbf24" strokeWidth="1.5" />
+              <circle cx="0" cy="36" r="6" fill="#991b1b" />
+              <text x="0" y="39" fill="#fef08a" fontSize="8" fontWeight="900" textAnchor="middle" fontFamily="serif">XUÂN</text>
+              <line x1="0" y1="48" x2="0" y2="60" stroke="#fbbf24" strokeWidth="2" />
+              <circle cx="0" cy="61" r="2" fill="#d97706" />
+            </g>
+
+            {/* Gold coin */}
+            <g transform="translate(32, 115)">
+              <circle cx="0" cy="0" r="7" fill="#facc15" stroke="#b45309" strokeWidth="1.5" />
+              <rect x="-2.5" y="-2.5" width="5" height="5" fill="#78350f" rx="0.5" />
             </g>
           </>
         )}
@@ -699,160 +834,178 @@ function renderCornerDecoration(
   }
 
   if (themeId === 'spring') {
-    // Cành cây lá non xanh mướt chồi non
+    // Cành cây lá non xanh mướt chồi non ôm viền
     return (
       <svg
-        viewBox="0 0 200 200"
-        className={`${scaleClass} drop-shadow-md transition-all ${isRight ? '-scale-x-100' : ''}`}
+        viewBox="0 0 100 440"
+        className={`${scaleClass} drop-shadow-[0_8px_16px_rgba(0,0,0,0.22)] transition-all ${isRight ? '-scale-x-100' : ''}`}
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
       >
         <path
-          d="M0 0 C 45 30, 95 45, 150 35 C 175 30, 190 55, 195 70 M 70 35 C 95 75, 125 105, 155 125 M 115 90 C 135 125, 155 145, 165 155"
-          stroke="#15803d"
-          strokeWidth="5"
+          d="M 0 0 C 18 25, 26 65, 22 110 C 18 155, 34 200, 26 250 C 18 295, 32 340, 20 390 C 14 415, 24 430, 18 440 M 22 110 C 42 130, 52 160, 46 185 M 26 230 C 46 250, 56 280, 44 305"
+          stroke="#166534"
+          strokeWidth="6"
           strokeLinecap="round"
         />
-        {/* Fresh Green Leaves */}
-        <ellipse cx="145" cy="30" rx="14" ry="7" transform="rotate(-20 145 30)" fill="#22c55e" />
-        <ellipse cx="190" cy="55" rx="12" ry="6" transform="rotate(25 190 55)" fill="#4ade80" />
-        <ellipse cx="150" cy="115" rx="15" ry="7" transform="rotate(40 150 115)" fill="#16a34a" />
-        <ellipse cx="160" cy="150" rx="12" ry="6" transform="rotate(55 160 150)" fill="#4ade80" />
-        <ellipse cx="80" cy="80" rx="13" ry="6" transform="rotate(35 80 80)" fill="#22c55e" />
-        <ellipse cx="115" cy="55" rx="11" ry="5" transform="rotate(-10 115 55)" fill="#86efac" />
-        {/* Spring Blossom Petal Accent */}
-        <circle cx="165" cy="35" r="5" fill="#fbcfe8" />
-        <circle cx="130" cy="100" r="4.5" fill="#fbcfe8" />
+        <path
+          d="M 0 0 C 18 25, 26 65, 22 110"
+          stroke="#22c55e"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+        />
+        {/* Lush Green Spring Leaves along the border */}
+        <ellipse cx="26" cy="55" rx="14" ry="7" transform="rotate(-15 26 55)" fill="#22c55e" stroke="#15803d" strokeWidth="1" />
+        <ellipse cx="46" cy="180" rx="15" ry="7" transform="rotate(30 46 180)" fill="#4ade80" stroke="#16a34a" strokeWidth="1" />
+        <ellipse cx="28" cy="245" rx="16" ry="8" transform="rotate(40 28 245)" fill="#16a34a" stroke="#14532d" strokeWidth="1" />
+        <ellipse cx="44" cy="300" rx="14" ry="7" transform="rotate(35 44 300)" fill="#4ade80" stroke="#16a34a" strokeWidth="1" />
+        <ellipse cx="22" cy="380" rx="13" ry="6" transform="rotate(25 22 380)" fill="#22c55e" stroke="#15803d" strokeWidth="1" />
+        {/* Little blossom buds */}
+        <circle cx="36" cy="120" r="6" fill="#fbcfe8" stroke="#f472b6" strokeWidth="1" />
+        <circle cx="36" cy="120" r="2" fill="#fbbf24" />
+        <circle cx="38" cy="270" r="6" fill="#fbcfe8" stroke="#f472b6" strokeWidth="1" />
+        <circle cx="38" cy="270" r="2" fill="#fbbf24" />
       </svg>
     );
   }
 
   if (themeId === 'summer') {
-    // Cành phượng vĩ đỏ cam nồng ấm & hoa phượng nở rực rỡ
+    // Cành phượng vĩ đỏ rực rỡ buông dọc viền
     return (
       <svg
-        viewBox="0 0 200 200"
-        className={`${scaleClass} drop-shadow-md transition-all ${isRight ? '-scale-x-100' : ''}`}
+        viewBox="0 0 100 440"
+        className={`${scaleClass} drop-shadow-[0_8px_16px_rgba(0,0,0,0.22)] transition-all ${isRight ? '-scale-x-100' : ''}`}
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
       >
         <path
-          d="M0 0 C 40 20, 85 35, 140 25 C 165 20, 185 45, 195 60 M 65 30 C 85 65, 115 90, 145 105 M 105 80 C 125 110, 145 130, 155 140"
+          d="M 0 0 C 16 25, 24 65, 20 110 C 16 155, 30 200, 24 250 C 16 295, 28 340, 18 390 M 20 110 C 40 128, 50 155, 44 180 M 24 230 C 42 248, 52 275, 40 300"
           stroke="#7c2d12"
-          strokeWidth="5"
+          strokeWidth="6"
           strokeLinecap="round"
         />
-        {/* Phoenix Flowers (Hoa Phượng) */}
-        <circle cx="140" cy="25" r="11" fill="#dc2626" stroke="#f97316" strokeWidth="1.5" />
-        <circle cx="140" cy="25" r="4.5" fill="#fef08a" />
-        <circle cx="195" cy="60" r="9" fill="#ea580c" stroke="#dc2626" strokeWidth="1.5" />
-        <circle cx="195" cy="60" r="3.5" fill="#fef08a" />
-        <circle cx="145" cy="105" r="10" fill="#dc2626" stroke="#f97316" strokeWidth="1.5" />
-        <circle cx="145" cy="105" r="4" fill="#fef08a" />
-        {/* Tiny leaflets (Lá phượng tí hon) */}
-        <ellipse cx="100" cy="40" rx="6" ry="3" fill="#15803d" />
-        <ellipse cx="115" cy="35" rx="6" ry="3" fill="#16a34a" />
-        <ellipse cx="160" cy="40" rx="6" ry="3" fill="#15803d" />
-        <ellipse cx="125" cy="90" rx="6" ry="3" fill="#16a34a" />
+        {/* Red Phoenix Flowers */}
+        <g transform="translate(24, 60)">
+          <ellipse cx="-7" cy="0" rx="8" ry="5" fill="#dc2626" />
+          <ellipse cx="7" cy="0" rx="8" ry="5" fill="#dc2626" />
+          <ellipse cx="0" cy="-7" rx="5" ry="8" fill="#ea580c" />
+          <ellipse cx="0" cy="0" r="3" fill="#7f1d1d" />
+        </g>
+        <g transform="translate(46, 175) scale(0.9)">
+          <ellipse cx="-7" cy="0" rx="8" ry="5" fill="#dc2626" />
+          <ellipse cx="7" cy="0" rx="8" ry="5" fill="#dc2626" />
+          <ellipse cx="0" cy="-7" rx="5" ry="8" fill="#ea580c" />
+          <ellipse cx="0" cy="0" r="3" fill="#7f1d1d" />
+        </g>
+        <g transform="translate(26, 260) scale(0.85)">
+          <ellipse cx="-7" cy="0" rx="8" ry="5" fill="#dc2626" />
+          <ellipse cx="7" cy="0" rx="8" ry="5" fill="#dc2626" />
+          <ellipse cx="0" cy="0" r="3" fill="#7f1d1d" />
+        </g>
+        {/* Feather Leaflets */}
+        <ellipse cx="32" cy="110" rx="7" ry="3" fill="#15803d" />
+        <ellipse cx="38" cy="210" rx="7" ry="3" fill="#16a34a" />
+        <ellipse cx="32" cy="330" rx="7" ry="3" fill="#15803d" />
       </svg>
     );
   }
 
   if (themeId === 'autumn') {
-    // Cành phong vàng ấm áp
+    // Cành phong lá đỏ vàng mùa thu ôm viền
     return (
       <svg
-        viewBox="0 0 200 200"
-        className={`${scaleClass} drop-shadow-md transition-all ${isRight ? '-scale-x-100' : ''}`}
+        viewBox="0 0 100 440"
+        className={`${scaleClass} drop-shadow-[0_8px_16px_rgba(0,0,0,0.22)] transition-all ${isRight ? '-scale-x-100' : ''}`}
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
       >
         <path
-          d="M0 0 C 45 25, 90 40, 145 30 C 170 25, 185 50, 195 65 M 70 35 C 95 70, 120 95, 145 115 M 110 85 C 130 120, 150 140, 160 150"
+          d="M 0 0 C 16 25, 24 65, 20 110 C 16 155, 30 200, 24 250 C 16 295, 28 340, 18 390 M 20 110 C 40 128, 50 155, 44 180 M 24 230 C 42 248, 52 275, 40 300"
           stroke="#78350f"
-          strokeWidth="5"
+          strokeWidth="6"
           strokeLinecap="round"
         />
-        {/* Golden Maple Leaves on Branch */}
-        <g transform="translate(145, 30) scale(0.9)">
-          <path d="M0 -15 L4 -6 L13 -7 L8 -1 L14 4 L5 4 L0 12 L-5 4 L-14 4 L-8 -1 L-13 -7 L-4 -6 Z" fill="#d97706" />
+        {/* Maple Leaves */}
+        <g transform="translate(24, 60) scale(0.9)">
+          <path d="M0 -12 L3 -5 L10 -6 L6 -1 L11 3 L4 3 L0 9 L-4 3 L-11 3 L-6 -1 L-10 -6 L-3 -5 Z" fill="#d97706" stroke="#92400e" strokeWidth="0.8" />
         </g>
-        <g transform="translate(195, 65) scale(0.75)">
-          <path d="M0 -15 L4 -6 L13 -7 L8 -1 L14 4 L5 4 L0 12 L-5 4 L-14 4 L-8 -1 L-13 -7 L-4 -6 Z" fill="#ea580c" />
+        <g transform="translate(46, 175) scale(0.85)">
+          <path d="M0 -12 L3 -5 L10 -6 L6 -1 L11 3 L4 3 L0 9 L-4 3 L-11 3 L-6 -1 L-10 -6 L-3 -5 Z" fill="#ea580c" stroke="#9a3412" strokeWidth="0.8" />
         </g>
-        <g transform="translate(145, 115) scale(0.85)">
-          <path d="M0 -15 L4 -6 L13 -7 L8 -1 L14 4 L5 4 L0 12 L-5 4 L-14 4 L-8 -1 L-13 -7 L-4 -6 Z" fill="#b45309" />
+        <g transform="translate(26, 260) scale(0.8)">
+          <path d="M0 -12 L3 -5 L10 -6 L6 -1 L11 3 L4 3 L0 9 L-4 3 L-11 3 L-6 -1 L-10 -6 L-3 -5 Z" fill="#b45309" stroke="#78350f" strokeWidth="0.8" />
         </g>
-        <g transform="translate(75" y="80) scale(0.7)">
-          <path d="M0 -15 L4 -6 L13 -7 L8 -1 L14 4 L5 4 L0 12 L-5 4 L-14 4 L-8 -1 L-13 -7 L-4 -6 Z" fill="#f59e0b" />
+        <g transform="translate(38, 350) scale(0.75)">
+          <path d="M0 -12 L3 -5 L10 -6 L6 -1 L11 3 L4 3 L0 9 L-4 3 L-11 3 L-6 -1 L-10 -6 L-3 -5 Z" fill="#f59e0b" stroke="#b45309" strokeWidth="0.8" />
         </g>
       </svg>
     );
   }
 
   if (themeId === 'winter') {
-    // Cành thông mùa đông phủ tuyết trắng & chuông vàng
+    // Cành thông mùa đông phủ tuyết trắng buông viền
     return (
       <svg
-        viewBox="0 0 200 200"
-        className={`${scaleClass} drop-shadow-md transition-all ${isRight ? '-scale-x-100' : ''}`}
+        viewBox="0 0 100 440"
+        className={`${scaleClass} drop-shadow-[0_8px_16px_rgba(0,0,0,0.22)] transition-all ${isRight ? '-scale-x-100' : ''}`}
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
       >
         <path
-          d="M0 0 C 40 25, 85 35, 140 30 C 165 25, 185 50, 195 65 M 70 30 C 95 70, 120 100, 145 115 M 110 85 C 130 115, 145 135, 155 145"
+          d="M 0 0 C 16 25, 24 65, 20 110 C 16 155, 30 200, 24 250 C 16 295, 28 340, 18 390"
           stroke="#334155"
-          strokeWidth="5"
+          strokeWidth="6"
           strokeLinecap="round"
         />
-        {/* Pine needles (Kim thông) */}
-        <line x1="80" y1="35" x2="70" y2="55" stroke="#15803d" strokeWidth="2.5" />
-        <line x1="95" y1="35" x2="90" y2="60" stroke="#15803d" strokeWidth="2.5" />
-        <line x1="120" y1="30" x2="115" y2="55" stroke="#15803d" strokeWidth="2.5" />
-        <line x1="135" y1="30" x2="140" y2="55" stroke="#15803d" strokeWidth="2.5" />
-        {/* Golden Bell or Red Ribbon */}
-        <g transform="translate(145, 115)">
-          <path d="M-8 0 C -8 10, -12 18, -14 20 L14 20 C 12 18, 8 10, 8 0 Z" fill="#fbbf24" stroke="#d97706" strokeWidth="1.5" />
-          <circle cx="0" cy="22" r="3" fill="#b45309" />
-          <rect x="-10" y="-4" width="20" height="6" rx="2" fill="#dc2626" />
-        </g>
-        {/* Crystal Snowflake */}
-        <g transform="translate(140, 30) scale(0.8)">
-          <circle cx="0" cy="0" r="2" fill="#ffffff" />
-          <line x1="-10" y1="0" x2="10" y2="0" stroke="#ffffff" strokeWidth="1.5" />
-          <line x1="0" y1="-10" x2="0" y2="10" stroke="#ffffff" strokeWidth="1.5" />
-          <line x1="-7" y1="-7" x2="7" y2="7" stroke="#ffffff" strokeWidth="1.5" />
-          <line x1="-7" y1="7" x2="7" y2="-7" stroke="#ffffff" strokeWidth="1.5" />
+        {/* Pine needles clusters along border */}
+        <line x1="20" y1="60" x2="38" y2="75" stroke="#15803d" strokeWidth="3" />
+        <line x1="22" y1="120" x2="42" y2="135" stroke="#16a34a" strokeWidth="3" />
+        <line x1="24" y1="200" x2="46" y2="215" stroke="#15803d" strokeWidth="3" />
+        <line x1="20" y1="290" x2="40" y2="305" stroke="#16a34a" strokeWidth="3" />
+        {/* Snow blankets */}
+        <path d="M12 55 C 20 60, 30 62, 36 58 Q 38 54, 32 54 C 24 54, 16 52, 10 50 Z" fill="#ffffff" />
+        <path d="M14 115 C 22 120, 34 122, 40 118 Q 42 114, 36 114 C 26 114, 18 112, 12 110 Z" fill="#ffffff" />
+        {/* Holiday Bell */}
+        <g transform="translate(24, 250) scale(0.8)">
+          <path d="M-9 0 C -9 11, -14 20, -16 22 L16 22 C 14 20, 9 11, 9 0 Z" fill="#fbbf24" stroke="#d97706" strokeWidth="1.5" />
+          <circle cx="0" cy="24" r="3.5" fill="#b45309" />
+          <rect x="-11" y="-4" width="22" height="7" rx="2" fill="#dc2626" stroke="#fbbf24" strokeWidth="1" />
         </g>
       </svg>
     );
   }
 
-  // luxury: Hoa văn mây lành hoàng gia & kim tiền
+  // luxury: Hoa văn mây lành hoàng cung & kim tiền cổ 24K buông viền
   return (
     <svg
-      viewBox="0 0 200 200"
-      className={`${scaleClass} drop-shadow-md transition-all ${isRight ? '-scale-x-100' : ''}`}
+      viewBox="0 0 100 440"
+      className={`${scaleClass} drop-shadow-[0_8px_16px_rgba(0,0,0,0.22)] transition-all ${isRight ? '-scale-x-100' : ''}`}
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
       <path
-        d="M0 0 C 30 10, 60 15, 90 10 C 110 5, 130 20, 145 35 C 160 50, 175 60, 190 65 M 40 10 C 70 35, 90 65, 110 90 C 130 115, 145 135, 160 150"
+        d="M 0 0 C 16 20, 24 55, 20 95 C 16 135, 30 175, 24 220 C 16 265, 28 310, 18 360 C 14 395, 22 415, 16 435"
         stroke="#d97706"
-        strokeWidth="3.5"
+        strokeWidth="5"
         strokeLinecap="round"
       />
       <path
-        d="M20 5 C 50 15, 75 25, 100 45 C 120 60, 140 85, 155 110"
+        d="M 4 8 C 18 25, 22 55, 18 90 C 14 125, 26 165, 20 205"
         stroke="#fbbf24"
-        strokeWidth="2"
+        strokeWidth="2.5"
       />
-      <circle cx="145" cy="35" r="14" fill="#fbbf24" stroke="#b45309" strokeWidth="2" />
-      <rect x="139" y="29" width="12" height="12" fill="#78350f" rx="1" />
-      <circle cx="160" cy="150" r="10" fill="#f59e0b" stroke="#92400e" strokeWidth="1.5" />
-      <rect x="156" y="146" width="8" height="8" fill="#78350f" rx="1" />
-      <path d="M100 85 L103 92 L110 95 L103 98 L100 105 L97 98 L90 95 L97 92 Z" fill="#fef08a" stroke="#d97706" strokeWidth="0.5" />
-      <path d="M60 40 L62 45 L67 47 L62 49 L60 54 L58 49 L53 47 L58 45 Z" fill="#fef08a" stroke="#d97706" strokeWidth="0.5" />
+      {/* Imperial Gold Coins along border */}
+      <g transform="translate(24, 60) scale(0.75)">
+        <circle cx="0" cy="0" r="16" fill="#fbbf24" stroke="#b45309" strokeWidth="2.5" />
+        <rect x="-5" y="-5" width="10" height="10" fill="#78350f" rx="1" />
+      </g>
+      <g transform="translate(30, 220) scale(0.65)">
+        <circle cx="0" cy="0" r="16" fill="#f59e0b" stroke="#92400e" strokeWidth="2" />
+        <rect x="-5" y="-5" width="10" height="10" fill="#78350f" rx="1" />
+      </g>
+      {/* Diamond Sparkle Stars */}
+      <path d="M 32 140 L 34 147 L 41 150 L 34 153 L 32 160 L 30 153 L 23 150 L 30 147 Z" fill="#fef08a" stroke="#d97706" strokeWidth="0.8" />
+      <path d="M 26 310 L 28 316 L 34 318 L 28 320 L 26 326 L 24 320 L 18 318 L 24 316 Z" fill="#fef08a" stroke="#d97706" strokeWidth="0.8" />
     </svg>
   );
 }

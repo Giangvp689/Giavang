@@ -87,6 +87,26 @@ export interface StoreSettings {
   tvThemeEffectEnabled?: boolean;
   tvThemeEffectIntensity?: 'light' | 'normal' | 'rich';
   tvThemeShowCorners?: boolean;
+  tvThemeCornerSize?: 'normal' | 'large' | 'extralarge'; // Độ to & rõ của hoa văn góc TV
+
+  // Cài đặt Giá Vàng Thế Giới (XAU/USD - Theo thời gian thực từng giây)
+  showWorldGoldPrice?: boolean;
+}
+
+export interface WorldGoldRate {
+  symbol: string; // 'XAU/USD'
+  price: number; // e.g. 4411.23
+  priceFormatted: string; // "4,411.23"
+  change: number; // e.g. -19.10
+  changeFormatted: string; // "-19.10"
+  changePercent: number; // e.g. -0.43
+  changePercentFormatted: string; // "(-0.43%)"
+  high: number;
+  low: number;
+  direction: 'up' | 'down' | 'same';
+  vndEquivalentPerLuong: number; // Quy đổi VNĐ/lượng ước tính
+  lastUpdated: string;
+  source: string; // "Investing.com (XAU/USD)"
 }
 
 export type TvThemeId = 'none' | 'tet' | 'spring' | 'summer' | 'autumn' | 'winter' | 'luxury';

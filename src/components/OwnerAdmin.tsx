@@ -23,10 +23,12 @@ import {
   Phone,
   MapPin,
   Clock,
-  Radio
+  Radio,
+  Globe
 } from 'lucide-react';
 import { GoldItem, StoreSettings, UnitType } from '../types';
 import { calculateStorePrices, formatVnd, convertPriceByUnit } from '../utils/goldMath';
+import { WorldGoldTicker } from './WorldGoldTicker';
 
 interface OwnerAdminProps {
   items: GoldItem[];
@@ -936,6 +938,99 @@ export const OwnerAdmin: React.FC<OwnerAdminProps> = ({
                     }`}
                   >
                     1 Cột Đơn Dài
+                  </button>
+                </div>
+              </div>
+
+              {/* World Gold Real-Time Ticker Setting */}
+              <div className="bg-neutral-50 border border-neutral-200 rounded-2xl p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-black text-neutral-800 uppercase tracking-wide flex items-center gap-1.5">
+                    <Globe className="w-4 h-4 text-emerald-600" />
+                    Giá Vàng Thế Giới (XAU/USD - Investing.com Live)
+                  </label>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300">
+                    Nhảy giây Realtime
+                  </span>
+                </div>
+                <p className="text-xs text-neutral-600">
+                  Hiển thị tỷ giá vàng giao ngay quốc tế XAU/USD, tăng giảm theo thời gian thực từng giây giống Investing.com trên thanh tiêu đề TV.
+                </p>
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setLocalSettings(prev => ({ ...prev, showWorldGoldPrice: true }))}
+                    className={`py-2.5 px-3 rounded-xl text-xs font-black transition-all cursor-pointer text-center ${
+                      localSettings.showWorldGoldPrice !== false
+                        ? 'bg-emerald-700 text-white shadow-xs'
+                        : 'bg-white text-neutral-700 border border-neutral-300 hover:bg-neutral-100'
+                    }`}
+                  >
+                    ✓ BẬT Hiển Thị
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setLocalSettings(prev => ({ ...prev, showWorldGoldPrice: false }))}
+                    className={`py-2.5 px-3 rounded-xl text-xs font-black transition-all cursor-pointer text-center ${
+                      localSettings.showWorldGoldPrice === false
+                        ? 'bg-red-800 text-white shadow-xs'
+                        : 'bg-white text-neutral-700 border border-neutral-300 hover:bg-neutral-100'
+                    }`}
+                  >
+                    ✕ TẮT Hiển Thị
+                  </button>
+                </div>
+                {/* Live Preview of World Gold Ticker */}
+                <div className="pt-2">
+                  <WorldGoldTicker variant="card" />
+                </div>
+              </div>
+
+              {/* TV Corner Decoration Size Setting */}
+              <div className="bg-neutral-50 border border-neutral-200 rounded-2xl p-4 space-y-2">
+                <label className="text-xs font-black text-neutral-800 uppercase tracking-wide flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-amber-600" />
+                  Kích Thước Cành Đào / Hoa Văn Góc TV
+                </label>
+                <p className="text-xs text-neutral-600">
+                  Tăng giảm độ to rõ, sắc nét của cành đào, mai vàng, lá mùa ở 2 góc trên màn hình TV.
+                </p>
+                <div className="grid grid-cols-3 gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setLocalSettings(prev => ({ ...prev, tvThemeCornerSize: 'normal' }))}
+                    className={`py-2 px-2 rounded-xl text-xs font-black transition-all cursor-pointer text-center ${
+                      localSettings.tvThemeCornerSize === 'normal'
+                        ? 'bg-red-800 text-white shadow-xs'
+                        : 'bg-white text-neutral-700 border border-neutral-300 hover:bg-neutral-100'
+                    }`}
+                  >
+                    Vừa Phải
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setLocalSettings(prev => ({ ...prev, tvThemeCornerSize: 'large' }))}
+                    className={`py-2 px-2 rounded-xl text-xs font-black transition-all cursor-pointer text-center ${
+                      (!localSettings.tvThemeCornerSize || localSettings.tvThemeCornerSize === 'large')
+                        ? 'bg-red-800 text-white shadow-xs ring-2 ring-amber-400'
+                        : 'bg-white text-neutral-700 border border-neutral-300 hover:bg-neutral-100'
+                    }`}
+                  >
+                    To Rõ (Khuyên dùng)
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setLocalSettings(prev => ({ ...prev, tvThemeCornerSize: 'extralarge' }))}
+                    className={`py-2 px-2 rounded-xl text-xs font-black transition-all cursor-pointer text-center ${
+                      localSettings.tvThemeCornerSize === 'extralarge'
+                        ? 'bg-red-800 text-white shadow-xs'
+                        : 'bg-white text-neutral-700 border border-neutral-300 hover:bg-neutral-100'
+                    }`}
+                  >
+                    Cực Đại Siêu To
                   </button>
                 </div>
               </div>

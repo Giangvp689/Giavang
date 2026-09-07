@@ -382,5 +382,7 @@ export const INITIAL_STORE_SETTINGS: StoreSettings = {
   tvTheme: 'tet',
   tvThemeEffectEnabled: true,
   tvThemeEffectIntensity: 'normal',
-  tvThemeShowCorners: true
+  tvThemeShowCorners: true,
+  tvThemeCornerSize: 'large', // Mặc định to rõ nét chuẩn TV
+  showWorldGoldPrice: true // Hiển thị giá vàng thế giới thời gian thực (XAU/USD - Investing.com)
 };
