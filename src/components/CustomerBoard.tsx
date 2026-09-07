@@ -17,6 +17,8 @@ import {
 } from 'lucide-react';
 import { GoldItem, StoreSettings, UnitType } from '../types';
 import { calculateStorePrices, convertPriceByUnit } from '../utils/goldMath';
+import { ThemeAtmosphere } from './ThemeAtmosphere';
+import { getThemeById } from '../data/themesData';
 
 interface CustomerBoardProps {
   items: GoldItem[];
@@ -51,6 +53,12 @@ export const CustomerBoard: React.FC<CustomerBoardProps> = ({
   // Real-time live clock
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
   
+  // Theme & Atmosphere details
+  const currentTheme = getThemeById(settings.tvTheme || 'none');
+  const effectEnabled = settings.tvThemeEffectEnabled !== false;
+  const effectIntensity = settings.tvThemeEffectIntensity || 'normal';
+  const showCorners = settings.tvThemeShowCorners !== false;
+
   // Layout mode for TV: checks settings.layoutMode (supports 'single_col' or 'two_col')
   const layoutMode = settings.layoutMode || 'two_col';
   const priceFormat = 'compact';
@@ -310,6 +318,14 @@ export const CustomerBoard: React.FC<CustomerBoardProps> = ({
         marginTop: `${(100 - 10000 / currentTvScale) / 2}%`
       } : undefined}
     >
+      {/* HIỆU ỨNG GIAO DIỆN THEO MÙA: HOA ĐÀO, MAI VÀNG, LÁ XANH, NẮNG HẠ, LÁ PHONG, TUYẾT RƠI */}
+      <ThemeAtmosphere
+        themeId={settings.tvTheme || 'tet'}
+        effectEnabled={effectEnabled}
+        intensity={effectIntensity}
+        showCorners={showCorners}
+      />
+
       {/* 0. SLIM BANNER TRÊN MOBILE DÀNH CHO CHỦ TIỆM ĐỔI GIÁ (Không bị che khuất) */}
       <div className="md:hidden bg-gradient-to-r from-red-900 via-[#B91C1C] to-red-900 text-white px-3 py-1.5 flex items-center justify-between border-b border-amber-400 z-30 shadow-xs">
         <div className="flex items-center gap-1.5 text-xs font-bold text-amber-200 truncate">
@@ -344,10 +360,10 @@ export const CustomerBoard: React.FC<CustomerBoardProps> = ({
                 <h1 className={`${getStoreNameFontSize(storeName)} font-black font-serif uppercase tracking-wide text-red-800 leading-tight whitespace-nowrap drop-shadow-2xs`}>
                   {storeName}
                 </h1>
-                {storeName.length <= 22 && (
-                  <span className="hidden xl:inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 font-bold border border-emerald-300 flex-shrink-0 whitespace-nowrap">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    SJC • PNJ • DOJI
+                {currentTheme.id !== 'none' && currentTheme.badgeText && (
+                  <span className={`hidden xl:inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${currentTheme.badgeBg} flex-shrink-0 whitespace-nowrap shadow-2xs`}>
+                    <span>{currentTheme.icon}</span>
+                    <span>{currentTheme.badgeText}</span>
                   </span>
                 )}
               </div>
@@ -367,14 +383,14 @@ export const CustomerBoard: React.FC<CustomerBoardProps> = ({
             </div>
           </div>
 
-          {/* Center: Bảng khẩu hiệu "CHỮ TÍN QUÝ HƠN VÀNG" ở giữa trang cho đẹp, sang trọng và tôn vinh uy tín */}
+          {/* Center: Bảng khẩu hiệu Slogan kết hợp phong vị Tết / Mùa */}
           <div className="hidden md:flex items-center justify-center px-1 lg:px-3 flex-shrink-0">
             <div className="inline-flex items-center gap-2 px-3.5 sm:px-4 py-1 sm:py-1.5 rounded-xl bg-gradient-to-r from-red-950 via-[#B91C1C] to-red-950 text-amber-300 border border-amber-400 shadow-md">
-              <span className="text-amber-400 font-bold text-xs">✦</span>
+              {currentTheme.id !== 'none' && <span className="text-amber-400 font-bold text-xs">{currentTheme.icon}</span>}
               <span className="font-serif font-black text-xs sm:text-sm lg:text-base uppercase tracking-widest text-amber-200 drop-shadow-sm whitespace-nowrap">
-                {settings.slogan || "CHỮ TÍN QUÝ HƠN VÀNG"}
+                {settings.slogan || currentTheme.sloganTag}
               </span>
-              <span className="text-amber-400 font-bold text-xs">✦</span>
+              {currentTheme.id !== 'none' && <span className="text-amber-400 font-bold text-xs">{currentTheme.icon}</span>}
             </div>
           </div>
 

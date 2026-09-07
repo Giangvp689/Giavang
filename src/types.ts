@@ -81,6 +81,31 @@ export interface StoreSettings {
   priceDisplayFormat?: 'compact' | 'full';
   tvScalePercent?: number; // 90 | 95 | 100
   tvSafeMargin?: boolean; // Khớp khung viền an toàn cho TV (chống tràn mép màn hình 40" - 65")
+  
+  // Cài đặt Giao Diện & Hiệu Ứng Bảng TV (Tết, Mùa Xuân, Mùa Hè, Mùa Thu, Mùa Đông, Hoàng Kim)
+  tvTheme?: TvThemeId;
+  tvThemeEffectEnabled?: boolean;
+  tvThemeEffectIntensity?: 'light' | 'normal' | 'rich';
+  tvThemeShowCorners?: boolean;
+}
+
+export type TvThemeId = 'none' | 'tet' | 'spring' | 'summer' | 'autumn' | 'winter' | 'luxury';
+
+export interface TvThemeDefinition {
+  id: TvThemeId;
+  name: string;
+  seasonName: string;
+  subtitle: string;
+  icon: string;
+  sloganTag: string;
+  fallingType: string;
+  primaryColor: string;
+  badgeBg: string;
+  badgeText: string;
+  borderAccent: string;
+  tagline: string;
+  description: string;
+  effectDescription: string;
 }
 
 export interface PublicRatesResponse {

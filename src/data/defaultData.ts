@@ -378,5 +378,9 @@ export const INITIAL_STORE_SETTINGS: StoreSettings = {
   layoutMode: "two_col",
   priceDisplayFormat: "compact",
   tvScalePercent: 100,
-  tvSafeMargin: true
+  tvSafeMargin: true,
+  tvTheme: 'tet',
+  tvThemeEffectEnabled: true,
+  tvThemeEffectIntensity: 'normal',
+  tvThemeShowCorners: true
 };

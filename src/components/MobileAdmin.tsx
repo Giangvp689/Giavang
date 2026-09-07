@@ -33,11 +33,14 @@ import {
   Rows,
   Pencil,
   X,
-  AlertTriangle
+  AlertTriangle,
+  Palette
 } from 'lucide-react';
-import { GoldItem, StoreSettings, UnitType, GoldBrand, GoldCategory } from '../types';
+import { GoldItem, StoreSettings, UnitType, GoldBrand, GoldCategory, TvThemeId } from '../types';
 import { calculateStorePrices, convertPriceByUnit } from '../utils/goldMath';
 import { GoldCalculator } from './GoldCalculator';
+import { TV_THEMES, getThemeById } from '../data/themesData';
+import { ThemeAtmosphere } from './ThemeAtmosphere';
 
 interface MobileAdminProps {
   items: GoldItem[];
@@ -70,8 +73,8 @@ export const MobileAdmin: React.FC<MobileAdminProps> = ({
   isFirebaseConnected = false,
   lastSyncedTime = ''
 }) => {
-  // Mobile active sub-tab: 'pricing' (Đổi giá nhanh) | 'links' (Kết nối TV & Link) | 'store' (Cài đặt) | 'calc' (Máy tính)
-  const [activeTab, setActiveTab] = useState<'pricing' | 'links' | 'store' | 'calc'>('pricing');
+  // Mobile active sub-tab: 'pricing' (Đổi giá) | 'links' (Link TV) | 'store' (Cài đặt) | 'theme' (Giao diện) | 'calc' (Máy tính)
+  const [activeTab, setActiveTab] = useState<'pricing' | 'links' | 'store' | 'theme' | 'calc'>('pricing');
 
   // Local working copy of items & settings
   const [localItems, setLocalItems] = useState<GoldItem[]>(items);
@@ -82,6 +85,68 @@ export const MobileAdmin: React.FC<MobileAdminProps> = ({
   const isSettingsDirtyRef = useRef<boolean>(false);
   const [copiedLink, setCopiedLink] = useState<'tv' | 'admin' | null>(null);
   const [brandFilter, setBrandFilter] = useState<string>('ALL');
+
+  // Theme management handlers with immediate live preview & cloud sync
+  const handleSelectTheme = async (themeId: TvThemeId) => {
+    isSettingsDirtyRef.current = true;
+    const updatedSettings: StoreSettings = {
+      ...localSettings,
+      tvTheme: themeId,
+      tvThemeEffectEnabled: localSettings.tvThemeEffectEnabled !== false
+    };
+    setLocalSettings(updatedSettings);
+    if (onSaveAll) {
+      await onSaveAll(localItems, updatedSettings);
+    } else {
+      onUpdateSettings(updatedSettings);
+    }
+    const themeObj = getThemeById(themeId);
+    setSavedNotificationText(`Đã áp dụng giao diện "${themeObj.name}" và đồng bộ lên TV!`);
+    setSavedNotification(true);
+    setTimeout(() => setSavedNotification(false), 3000);
+  };
+
+  const handleToggleThemeEffect = async (enabled: boolean) => {
+    isSettingsDirtyRef.current = true;
+    const updatedSettings: StoreSettings = {
+      ...localSettings,
+      tvThemeEffectEnabled: enabled
+    };
+    setLocalSettings(updatedSettings);
+    if (onSaveAll) {
+      await onSaveAll(localItems, updatedSettings);
+    } else {
+      onUpdateSettings(updatedSettings);
+    }
+  };
+
+  const handleToggleThemeCorners = async (showCorners: boolean) => {
+    isSettingsDirtyRef.current = true;
+    const updatedSettings: StoreSettings = {
+      ...localSettings,
+      tvThemeShowCorners: showCorners
+    };
+    setLocalSettings(updatedSettings);
+    if (onSaveAll) {
+      await onSaveAll(localItems, updatedSettings);
+    } else {
+      onUpdateSettings(updatedSettings);
+    }
+  };
+
+  const handleChangeThemeIntensity = async (intensity: 'light' | 'normal' | 'rich') => {
+    isSettingsDirtyRef.current = true;
+    const updatedSettings: StoreSettings = {
+      ...localSettings,
+      tvThemeEffectIntensity: intensity
+    };
+    setLocalSettings(updatedSettings);
+    if (onSaveAll) {
+      await onSaveAll(localItems, updatedSettings);
+    } else {
+      onUpdateSettings(updatedSettings);
+    }
+  };
 
   // Compute initials for store crest
   const getInitials = (name: string) => {
@@ -460,11 +525,11 @@ export const MobileAdmin: React.FC<MobileAdminProps> = ({
 
       {/* 2. SUB-NAVIGATION TABS DÀNH CHO MOBILE */}
       <div className="bg-white border-b border-neutral-200 px-2 py-1.5 sticky top-[57px] z-20 shadow-2xs">
-        <div className="grid grid-cols-4 gap-1">
+        <div className="grid grid-cols-5 gap-1">
           <button
             type="button"
             onClick={() => setActiveTab('pricing')}
-            className={`py-2 px-1 rounded-xl text-xs font-black flex flex-col items-center justify-center gap-0.5 cursor-pointer transition-all ${
+            className={`py-2 px-0.5 rounded-xl text-xs font-black flex flex-col items-center justify-center gap-0.5 cursor-pointer transition-all ${
               activeTab === 'pricing'
                 ? 'bg-red-800 text-white shadow-xs'
                 : 'bg-neutral-50 hover:bg-neutral-100 text-neutral-700 border border-neutral-200'
@@ -477,7 +542,7 @@ export const MobileAdmin: React.FC<MobileAdminProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('links')}
-            className={`py-2 px-1 rounded-xl text-xs font-black flex flex-col items-center justify-center gap-0.5 cursor-pointer transition-all ${
+            className={`py-2 px-0.5 rounded-xl text-xs font-black flex flex-col items-center justify-center gap-0.5 cursor-pointer transition-all ${
               activeTab === 'links'
                 ? 'bg-red-800 text-white shadow-xs'
                 : 'bg-neutral-50 hover:bg-neutral-100 text-neutral-700 border border-neutral-200'
@@ -490,7 +555,7 @@ export const MobileAdmin: React.FC<MobileAdminProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('store')}
-            className={`py-2 px-1 rounded-xl text-xs font-black flex flex-col items-center justify-center gap-0.5 cursor-pointer transition-all ${
+            className={`py-2 px-0.5 rounded-xl text-xs font-black flex flex-col items-center justify-center gap-0.5 cursor-pointer transition-all ${
               activeTab === 'store'
                 ? 'bg-red-800 text-white shadow-xs'
                 : 'bg-neutral-50 hover:bg-neutral-100 text-neutral-700 border border-neutral-200'
@@ -502,8 +567,21 @@ export const MobileAdmin: React.FC<MobileAdminProps> = ({
 
           <button
             type="button"
+            onClick={() => setActiveTab('theme')}
+            className={`py-2 px-0.5 rounded-xl text-xs font-black flex flex-col items-center justify-center gap-0.5 cursor-pointer transition-all relative ${
+              activeTab === 'theme'
+                ? 'bg-red-800 text-white shadow-xs'
+                : 'bg-amber-50 hover:bg-amber-100 text-red-900 border border-amber-300'
+            }`}
+          >
+            <Palette className="w-4 h-4 text-amber-500" />
+            <span className="truncate">Giao Diện</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setActiveTab('calc')}
-            className={`py-2 px-1 rounded-xl text-xs font-black flex flex-col items-center justify-center gap-0.5 cursor-pointer transition-all ${
+            className={`py-2 px-0.5 rounded-xl text-xs font-black flex flex-col items-center justify-center gap-0.5 cursor-pointer transition-all ${
               activeTab === 'calc'
                 ? 'bg-red-800 text-white shadow-xs'
                 : 'bg-neutral-50 hover:bg-neutral-100 text-neutral-700 border border-neutral-200'
@@ -1373,7 +1451,371 @@ export const MobileAdmin: React.FC<MobileAdminProps> = ({
           </div>
         )}
 
-        {/* TAB 4: MÁY TÍNH TIỀN VÀNG */}
+        {/* TAB 4: GIAO DIỆN & HIỆU ỨNG THEO MÙA (TẾT, XUÂN, HẠ, THU, ĐÔNG, HOÀNG KIM) */}
+        {activeTab === 'theme' && (
+          <div className="space-y-4">
+            
+            {/* 1. Header Banner & Info */}
+            <div className="bg-gradient-to-r from-red-950 via-[#B91C1C] to-red-900 rounded-2xl p-4 text-white shadow-md border border-amber-400">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-xl bg-amber-400 text-red-950 flex items-center justify-center font-black shadow-sm flex-shrink-0">
+                    <Palette className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-base text-amber-200 uppercase tracking-wide">
+                      Giao Diện & Hiệu Ứng Bảng TV
+                    </h3>
+                    <p className="text-xs text-neutral-200 mt-0.5">
+                      Chọn chủ đề theo mùa (Tết, Xuân, Hạ, Thu, Đông, Hoàng Kim). Có hiệu ứng hoa/lá/tuyết bay rơi và cành đào/mai trang trí góc TV.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Status row */}
+              <div className="mt-3 pt-3 border-t border-red-800/80 flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="text-neutral-300">Đang chiếu trên TV:</span>
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-400 text-red-950 font-black shadow-xs">
+                    <span>{getThemeById(localSettings.tvTheme || 'tet').icon}</span>
+                    <span>{getThemeById(localSettings.tvTheme || 'tet').name}</span>
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={onOpenTV}
+                  className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-amber-300 text-xs font-bold flex items-center gap-1 border border-amber-300/40 cursor-pointer active:scale-95 transition-all"
+                >
+                  <Tv className="w-3.5 h-3.5" />
+                  <span>Xem Trên TV</span>
+                </button>
+              </div>
+            </div>
+
+            {/* 2. MÔ PHỎNG MÀN HÌNH TV TRỰC TIẾP (Interactive Live TV Frame Preview) */}
+            <div className="bg-neutral-900 rounded-2xl p-3 border-2 border-neutral-700 shadow-xl overflow-hidden">
+              <div className="flex items-center justify-between pb-2 mb-2 border-b border-neutral-800 text-xs text-neutral-300">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                  <span className="font-bold text-white">Mô Phỏng Trực Tiếp Bảng Giá Trên TV</span>
+                </div>
+                <span className="text-[11px] text-amber-400 font-mono">16:9 Live Preview</span>
+              </div>
+
+              {/* TV Screen Mockup with Real ThemeAtmosphere! */}
+              <div className="relative w-full aspect-video rounded-xl bg-[#F8F9FA] overflow-hidden border border-neutral-600 shadow-inner flex flex-col justify-between select-none">
+                {/* Embedded Live Particle Canvas! */}
+                <ThemeAtmosphere
+                  themeId={localSettings.tvTheme || 'tet'}
+                  effectEnabled={localSettings.tvThemeEffectEnabled !== false}
+                  intensity={localSettings.tvThemeEffectIntensity || 'normal'}
+                  showCorners={localSettings.tvThemeShowCorners !== false}
+                  isMiniPreview={true}
+                />
+
+                {/* Mini TV Header */}
+                <div className="relative z-10 w-full bg-white/95 px-2 py-1 border-b border-amber-300 flex items-center justify-between shadow-2xs">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <div className="w-5 h-5 rounded-md bg-amber-500 text-red-950 font-black text-[9px] flex items-center justify-center flex-shrink-0">
+                      {getInitials(localSettings.storeName)}
+                    </div>
+                    <div className="truncate">
+                      <div className="text-[10px] font-black text-red-800 uppercase tracking-tight truncate">
+                        {localSettings.storeName}
+                      </div>
+                      <div className="text-[7px] text-neutral-500 truncate">
+                        {localSettings.storeAddress}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Slogan pill */}
+                  {localSettings.tvTheme !== 'none' ? (
+                    <div className="hidden xs:inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-900 text-amber-200 text-[8px] font-bold border border-amber-400/60 shadow-2xs">
+                      <span>{getThemeById(localSettings.tvTheme || 'none').icon}</span>
+                      <span className="truncate max-w-[120px]">{localSettings.slogan || getThemeById(localSettings.tvTheme || 'none').sloganTag}</span>
+                    </div>
+                  ) : (
+                    <div className="hidden xs:inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-900 text-amber-200 text-[8px] font-bold border border-amber-400/60 shadow-2xs">
+                      <span className="truncate max-w-[120px]">{localSettings.slogan || "CHỮ TÍN QUÝ HƠN VÀNG"}</span>
+                    </div>
+                  )}
+
+                  <div className="text-right text-[8px] font-mono font-bold text-neutral-800">
+                    {new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                </div>
+
+                {/* Mini TV Price Table */}
+                <div className="relative z-10 flex-1 px-2 py-1 flex flex-col justify-center">
+                  <div className="bg-white/95 rounded-lg border border-neutral-300 overflow-hidden shadow-xs">
+                    {/* Header */}
+                    <div className="bg-[#B91C1C] text-white flex text-[8px] font-black uppercase py-0.5 px-1 border-b border-amber-400">
+                      <div className="w-[42%] truncate">LOẠI VÀNG</div>
+                      <div className="w-[29%] text-center truncate">MUA VÀO</div>
+                      <div className="w-[29%] text-center truncate">BÁN RA</div>
+                    </div>
+                    {/* 3 mini sample rows */}
+                    <div className="divide-y divide-neutral-100 text-[8px]">
+                      <div className="flex items-center py-0.5 px-1 font-bold">
+                        <div className="w-[42%] text-neutral-900 truncate">VÀNG MIẾNG SJC 999.9</div>
+                        <div className="w-[29%] text-center text-red-700 font-mono font-black">17.850</div>
+                        <div className="w-[29%] text-center text-red-700 font-mono font-black">18.150</div>
+                      </div>
+                      <div className="flex items-center py-0.5 px-1 font-bold bg-neutral-50/70">
+                        <div className="w-[42%] text-neutral-900 truncate">VÀNG NHẪN TRƠN 99.99%</div>
+                        <div className="w-[29%] text-center text-red-700 font-mono font-black">17.500</div>
+                        <div className="w-[29%] text-center text-red-700 font-mono font-black">17.900</div>
+                      </div>
+                      <div className="flex items-center py-0.5 px-1 font-bold">
+                        <div className="w-[42%] text-neutral-900 truncate">VÀNG NỮ TRANG 24K</div>
+                        <div className="w-[29%] text-center text-red-700 font-mono font-black">17.100</div>
+                        <div className="w-[29%] text-center text-red-700 font-mono font-black">17.650</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Mini TV Footer Marquee */}
+                <div className="relative z-10 bg-[#B91C1C] text-amber-200 px-2 py-0.5 text-[7px] font-bold flex items-center justify-between border-t border-amber-400">
+                  <div className="truncate flex items-center gap-1">
+                    {localSettings.tvTheme !== 'none' && <span>{getThemeById(localSettings.tvTheme || 'none').icon}</span>}
+                    <span>{getThemeById(localSettings.tvTheme || 'none').sloganTag}</span>
+                  </div>
+                  <span className="font-mono text-[7px] text-white">● BẢNG GIÁ CHUẨN TV</span>
+                </div>
+              </div>
+
+              {/* TV Stand foot */}
+              <div className="w-16 h-1 bg-neutral-700 mx-auto rounded-b-md mt-1" />
+              <div className="w-24 h-0.5 bg-neutral-600 mx-auto rounded-full mt-0.5" />
+            </div>
+
+            {/* 3. DANH SÁCH 7 GIAO DIỆN CHỌN LỰA */}
+            <div className="bg-white rounded-2xl border border-neutral-200 p-4 shadow-2xs">
+              <div className="flex items-center justify-between mb-3 pb-2 border-b border-neutral-100">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-amber-500" />
+                  <h4 className="font-black text-sm text-neutral-900 uppercase tracking-wide">
+                    Chọn Giao Diện (7 Lựa Chọn - Có Mặc Định Để Nguyên)
+                  </h4>
+                </div>
+                <span className="text-xs font-bold text-neutral-500">7 Chủ Đề</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {TV_THEMES.map((theme) => {
+                  const isSelected = (localSettings.tvTheme || 'none') === theme.id;
+                  return (
+                    <div
+                      key={theme.id}
+                      onClick={() => handleSelectTheme(theme.id)}
+                      className={`relative rounded-2xl p-3.5 border-2 cursor-pointer transition-all active:scale-98 flex flex-col justify-between ${
+                        isSelected
+                          ? 'border-red-600 bg-red-50/40 shadow-sm ring-2 ring-red-400/40'
+                          : 'border-neutral-200 bg-white hover:border-amber-400 hover:bg-amber-50/30'
+                      }`}
+                    >
+                      {/* Top row: Icon, Name, Badge */}
+                      <div>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-2xl p-1.5 rounded-xl bg-neutral-100 border border-neutral-200 shadow-2xs">
+                              {theme.icon}
+                            </span>
+                            <div>
+                              <h5 className="font-black text-sm text-neutral-900 leading-tight">
+                                {theme.name}
+                              </h5>
+                              <p className="text-[11px] font-bold text-neutral-500 mt-0.5">
+                                {theme.seasonName}
+                              </p>
+                            </div>
+                          </div>
+
+                          {isSelected ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-800 text-white text-[10px] font-black shadow-xs">
+                              <Check className="w-3 h-3 stroke-[3]" />
+                              <span>ĐANG DÙNG</span>
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-bold text-neutral-400 hover:text-neutral-700">
+                              Nhấn để chọn
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Description */}
+                        <p className="text-xs text-neutral-600 mt-2.5 leading-relaxed">
+                          {theme.description}
+                        </p>
+
+                        {/* Effect details */}
+                        <div className="mt-2.5 p-2 rounded-xl bg-neutral-50 border border-neutral-200 text-[11px] text-neutral-700 flex items-start gap-1.5">
+                          <Sparkles className="w-3.5 h-3.5 text-amber-600 flex-shrink-0 mt-0.5" />
+                          <div>
+                            <span className="font-bold text-neutral-900">Hiệu ứng: </span>
+                            <span>{theme.effectDescription}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Bottom Action / Slogan */}
+                      <div className="mt-3 pt-2.5 border-t border-neutral-100 flex items-center justify-between gap-2">
+                        <div className="text-[10px] text-neutral-400 font-bold truncate">
+                          <span>Slogan: </span>
+                          <span className="text-neutral-700 font-mono">"{theme.sloganTag.slice(0, 26)}..."</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSelectTheme(theme.id);
+                          }}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-black cursor-pointer transition-all flex items-center gap-1 flex-shrink-0 ${
+                            isSelected
+                              ? 'bg-red-800 text-white shadow-xs'
+                              : 'bg-neutral-100 hover:bg-amber-400 hover:text-red-950 text-neutral-800 font-bold'
+                          }`}
+                        >
+                          {isSelected ? (
+                            <>
+                              <Check className="w-3.5 h-3.5 stroke-[3]" />
+                              <span>Đã Áp Dụng</span>
+                            </>
+                          ) : (
+                            <span>Chọn Chủ Đề</span>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 4. TÙY CHỈNH HIỆU ỨNG NÂNG CAO (Effect Options) */}
+            <div className="bg-white rounded-2xl border border-neutral-200 p-4 shadow-2xs space-y-4">
+              <div className="flex items-center gap-2 pb-2 border-b border-neutral-100">
+                <Sliders className="w-5 h-5 text-red-700" />
+                <div>
+                  <h4 className="font-black text-sm text-neutral-900 uppercase tracking-wide">
+                    Tùy Chỉnh Chuyển Động & Hiệu Ứng Rơi
+                  </h4>
+                  <p className="text-xs text-neutral-500">
+                    Bật tắt hiệu ứng lá/hoa/tuyết bay rơi và cành đào mai trang trí trên màn hình TV
+                  </p>
+                </div>
+              </div>
+
+              {/* Setting 1: Toggle Falling Effect */}
+              <div className="flex items-center justify-between p-3 rounded-xl bg-neutral-50 border border-neutral-200">
+                <div className="pr-2">
+                  <div className="text-xs font-black text-neutral-900">
+                    Hiệu Ứng Bay Rơi (Lá, Hoa, Tuyết, Kim Tuyến)
+                  </div>
+                  <div className="text-[11px] text-neutral-500 mt-0.5">
+                    Cho phép các cánh hoa đào, hoa mai, lá xanh, tuyết rơi chao liệng từ trên xuống
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleToggleThemeEffect(localSettings.tvThemeEffectEnabled === false ? true : false)}
+                  className={`py-1.5 px-3.5 rounded-xl text-xs font-black cursor-pointer transition-all flex items-center gap-1.5 flex-shrink-0 ${
+                    localSettings.tvThemeEffectEnabled !== false
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'bg-neutral-200 text-neutral-700'
+                  }`}
+                >
+                  <span className={`w-2 h-2 rounded-full ${localSettings.tvThemeEffectEnabled !== false ? 'bg-white' : 'bg-neutral-400'}`} />
+                  <span>{localSettings.tvThemeEffectEnabled !== false ? 'Đang BẬT' : 'Đang TẮT'}</span>
+                </button>
+              </div>
+
+              {/* Setting 2: Toggle Corner Floral Decorations */}
+              <div className="flex items-center justify-between p-3 rounded-xl bg-neutral-50 border border-neutral-200">
+                <div className="pr-2">
+                  <div className="text-xs font-black text-neutral-900">
+                    Cành Đào / Cành Lá / Hoa Văn Góc TV
+                  </div>
+                  <div className="text-[11px] text-neutral-500 mt-0.5">
+                    Hiển thị cành đào, cành mai, lá cây, hoa văn hoàng kim ở góc trên màn hình TV
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleToggleThemeCorners(localSettings.tvThemeShowCorners === false ? true : false)}
+                  className={`py-1.5 px-3.5 rounded-xl text-xs font-black cursor-pointer transition-all flex items-center gap-1.5 flex-shrink-0 ${
+                    localSettings.tvThemeShowCorners !== false
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'bg-neutral-200 text-neutral-700'
+                  }`}
+                >
+                  <span className={`w-2 h-2 rounded-full ${localSettings.tvThemeShowCorners !== false ? 'bg-white' : 'bg-neutral-400'}`} />
+                  <span>{localSettings.tvThemeShowCorners !== false ? 'Đang BẬT' : 'Đang TẮT'}</span>
+                </button>
+              </div>
+
+              {/* Setting 3: Particle Intensity (Mật độ bay rơi) */}
+              <div className="p-3 rounded-xl bg-neutral-50 border border-neutral-200">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-xs font-black text-neutral-900">
+                    Mật Độ Cánh Hoa & Lá Rơi
+                  </div>
+                  <span className="text-[11px] font-bold text-neutral-500">
+                    {localSettings.tvThemeEffectIntensity === 'light' ? 'Nhẹ Nhàng' : localSettings.tvThemeEffectIntensity === 'rich' ? 'Rực Rỡ' : 'Vừa Phải (Chuẩn)'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleChangeThemeIntensity('light')}
+                    className={`py-2 px-2 rounded-xl text-xs font-black cursor-pointer transition-all text-center border ${
+                      localSettings.tvThemeEffectIntensity === 'light'
+                        ? 'bg-red-800 text-white border-red-800 shadow-xs'
+                        : 'bg-white text-neutral-700 border-neutral-200 hover:bg-neutral-100'
+                    }`}
+                  >
+                    <div>Nhẹ Nhàng</div>
+                    <div className="text-[9px] opacity-80 font-normal mt-0.5">16 cánh rơi</div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleChangeThemeIntensity('normal')}
+                    className={`py-2 px-2 rounded-xl text-xs font-black cursor-pointer transition-all text-center border ${
+                      (localSettings.tvThemeEffectIntensity || 'normal') === 'normal'
+                        ? 'bg-red-800 text-white border-red-800 shadow-xs'
+                        : 'bg-white text-neutral-700 border-neutral-200 hover:bg-neutral-100'
+                    }`}
+                  >
+                    <div>Vừa Phải</div>
+                    <div className="text-[9px] opacity-80 font-normal mt-0.5">Chuẩn tiệm vàng</div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleChangeThemeIntensity('rich')}
+                    className={`py-2 px-2 rounded-xl text-xs font-black cursor-pointer transition-all text-center border ${
+                      localSettings.tvThemeEffectIntensity === 'rich'
+                        ? 'bg-red-800 text-white border-red-800 shadow-xs'
+                        : 'bg-white text-neutral-700 border-neutral-200 hover:bg-neutral-100'
+                    }`}
+                  >
+                    <div>Rực Rỡ</div>
+                    <div className="text-[9px] opacity-80 font-normal mt-0.5">48 cánh dạt dào</div>
+                  </button>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+        )}
+
+        {/* TAB 5: MÁY TÍNH TIỀN VÀNG */}
         {activeTab === 'calc' && (
           <div className="bg-white rounded-2xl border border-neutral-200 p-3 shadow-2xs">
             <GoldCalculator
@@ -1400,7 +1842,9 @@ export const MobileAdmin: React.FC<MobileAdminProps> = ({
                 ? 'ĐANG LƯU & ĐỒNG BỘ LÊN TV...'
                 : activeTab === 'store'
                   ? 'LƯU THÔNG TIN TIỆM & CẬP NHẬT TV'
-                  : 'LƯU GIÁ & CẬP NHẬT LÊN TV NGAY'}
+                  : activeTab === 'theme'
+                    ? 'ÁP DỤNG GIAO DIỆN & CẬP NHẬT TV'
+                    : 'LƯU GIÁ & CẬP NHẬT LÊN TV NGAY'}
             </span>
           </button>
         </div>
