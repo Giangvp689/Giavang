@@ -309,17 +309,23 @@ export const CustomerBoard: React.FC<CustomerBoardProps> = ({
   const getThemeContainerBg = (tId: string) => {
     switch (tId) {
       case 'tet':
-        return 'bg-gradient-to-b from-[#2a0505] via-[#450a0a] to-[#200404] text-white';
-      case 'summer':
-        return 'bg-gradient-to-b from-[#082f49] via-[#0c4a6e] to-[#042136] text-white';
-      case 'autumn':
-        return 'bg-gradient-to-b from-[#3b1906] via-[#572407] to-[#260f03] text-white';
-      case 'winter':
-        return 'bg-gradient-to-b from-[#09182a] via-[#112239] to-[#060e1a] text-white';
+        // Soft festive imperial cream with pale rose silk & champagne tint
+        return 'bg-gradient-to-b from-[#fff5f5] via-[#fffbf7] to-[#fef2f2] text-neutral-900';
       case 'spring':
-        return 'bg-gradient-to-b from-[#063020] via-[#094830] to-[#042015] text-white';
+        // Xanh lá tre kết hợp với trắng ngọc tinh khôi, nhạt nhạt sang trọng
+        return 'bg-gradient-to-b from-[#ebf9ef] via-[#ffffff] to-[#e1f5e6] text-neutral-900';
+      case 'summer':
+        // Mát dịu: Xanh ngọc biển pha lê nhạt kết hợp trắng nắng mai
+        return 'bg-gradient-to-b from-[#f0f9ff] via-[#ffffff] to-[#e0f2fe]/60 text-neutral-900';
+      case 'autumn':
+        // Thu vàng quý phái nhạt: Hổ phách champagne nhạt kết hợp trắng ngà
+        return 'bg-gradient-to-b from-[#fffbeb] via-[#ffffff] to-[#fef3c7]/50 text-neutral-900';
+      case 'winter':
+        // Đông tuyết trắng tinh khôi nhạt: Bạch kim pha lê kết hợp trắng sương
+        return 'bg-gradient-to-b from-[#f8fafc] via-[#ffffff] to-[#f1f5f9] text-neutral-900';
       case 'luxury':
-        return 'bg-gradient-to-b from-[#141416] via-[#1f1f23] to-[#0a0a0c] text-white';
+        // Hoàng kim 24K nhạt: Vàng champagne nhạt hoàng gia kết hợp ngọc trai trắng
+        return 'bg-gradient-to-b from-[#fffdf5] via-[#ffffff] to-[#fef9c3]/40 text-neutral-900';
       case 'none':
       default:
         return 'bg-[#F8F9FA] text-neutral-900';
@@ -477,8 +483,10 @@ export const CustomerBoard: React.FC<CustomerBoardProps> = ({
         </div>
       </header>
 
-      {/* 2. MAIN TV GOLD BOARD (Có lề viền 2 bên chuẩn để cành hoa nằm gọn ở 2 viền ngoài, chữ và bảng giá bên trong hoàn toàn thông thoáng) */}
-      <main className="flex-1 min-h-0 w-full px-2.5 sm:px-5 md:px-12 lg:px-16 xl:px-20 py-1.5 sm:py-2 overflow-hidden flex flex-col justify-stretch relative z-10">
+      {/* 2. MAIN TV GOLD BOARD (Có lề viền 2 bên chuẩn để câu đối và cành hoa nằm gọn ở 2 viền ngoài, chữ và bảng giá bên trong hoàn toàn thông thoáng) */}
+      <main className={`flex-1 min-h-0 w-full px-2.5 sm:px-5 ${
+        activeTheme === 'tet' ? 'md:px-24 lg:px-32 xl:px-44 2xl:px-48' : 'md:px-12 lg:px-16 xl:px-20'
+      } py-1.5 sm:py-2 overflow-hidden flex flex-col justify-stretch relative z-10`}>
         {visibleItems.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center bg-white rounded-2xl border border-neutral-200 text-neutral-500 font-bold text-base gap-3">
             <span>Chưa có loại vàng nào trong danh sách hiển thị.</span>

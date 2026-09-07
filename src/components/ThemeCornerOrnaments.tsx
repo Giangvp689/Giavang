@@ -54,12 +54,12 @@ export const ThemeCornerOrnament: React.FC<CornerProps> = ({
           <stop offset="100%" stopColor="#C8963E" />
         </linearGradient>
 
-        {/* Imperial Jade & Emerald Gradient */}
+        {/* Fresh Bamboo Leaf Green & Crisp White Gradient (Xanh Lá Tre Thanh Tao) */}
         <linearGradient id={`${uniqueId}-jade`} x1="0%" y1="100%" x2="50%" y2="0%">
-          <stop offset="0%" stopColor="#064E3B" />
-          <stop offset="40%" stopColor="#059669" />
-          <stop offset="70%" stopColor="#34D399" />
-          <stop offset="100%" stopColor="#A7F3D0" />
+          <stop offset="0%" stopColor="#15803D" />
+          <stop offset="35%" stopColor="#22C55E" />
+          <stop offset="70%" stopColor="#86EFAC" />
+          <stop offset="100%" stopColor="#F0FDF4" />
         </linearGradient>
 
         {/* Ruby Silk Gradient (Đào Thắm Hoàng Gia) */}

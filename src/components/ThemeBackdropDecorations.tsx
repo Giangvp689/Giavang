@@ -15,13 +15,13 @@ export const ThemeBackdropDecorations: React.FC<ThemeBackdropDecorationsProps> =
   return (
     <div className="absolute inset-0 pointer-events-none overflow-hidden select-none z-0">
       {/* =========================================================
-          1. THEME TẾT: LIỄN CÂU ĐỐI THƯ PHÁP ĐỎ VÀNG & KHUÊ VĂN CÁC
+          1. THEME TẾT: LIỄN CÂU ĐỐI THƯ PHÁP ĐỎ VÀNG (TO GẤP 3 LẦN) & KHUÊ VĂN CÁC
          ========================================================= */}
       {themeId === 'tet' && (
         <>
           {/* Subtle Vietnamese Architectural Heritage Watermark (Khuê Văn Các & Mái Đình Cổ Kính) */}
           <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-full max-w-5xl opacity-15 pointer-events-none flex items-end justify-center">
-            <svg viewBox="0 0 1000 240" className="w-full h-auto text-amber-300 fill-current">
+            <svg viewBox="0 0 1000 240" className="w-full h-auto text-amber-500 fill-current">
               {/* Khuê Văn Các Center Silhouette */}
               <g transform="translate(370, 20)">
                 {/* Roof tiers */}
@@ -50,107 +50,154 @@ export const ThemeBackdropDecorations: React.FC<ThemeBackdropDecorationsProps> =
             </svg>
           </div>
 
-          {/* CÂU ĐỐI TẾT THƯ PHÁP VIỆT NAM (Treo 2 bên mép TV) */}
+          {/* CÂU ĐỐI TẾT THƯ PHÁP VIỆT NAM (Treo 2 bên mép TV - KÍCH THƯỚC TO GẤP 3 LẦN HOÀNG GIA) */}
           {/* LIỄN BÊN TRÁI: NĂM MỚI HẠNH PHÚC BÌNH AN ĐẾN */}
           <div
-            className={`absolute top-14 sm:top-16 left-1 sm:left-2 md:left-3 z-20 flex flex-col items-center drop-shadow-xl transition-all ${
-              isMini ? 'scale-50 origin-top-left' : 'scale-90 sm:scale-95 md:scale-100 origin-top-left'
+            className={`absolute top-12 sm:top-14 md:top-16 left-1 sm:left-2 md:left-3 lg:left-4 z-20 flex flex-col items-center drop-shadow-2xl transition-all ${
+              isMini ? 'scale-[0.32] origin-top-left' : 'scale-90 sm:scale-95 md:scale-100 origin-top-left'
             }`}
           >
-            {/* Dây treo ngọc đỏ */}
-            <div className="w-0.5 h-4 sm:h-6 bg-amber-400" />
-            <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-gradient-to-br from-amber-300 to-amber-600 shadow-xs ring-1 ring-amber-200" />
-
-            {/* Trục cuốn liễn trên (Gỗ sơn son thếp vàng) */}
-            <div className="w-12 sm:w-14 md:w-16 h-2.5 sm:h-3 rounded-full bg-gradient-to-r from-amber-700 via-amber-300 to-amber-700 border border-amber-200 shadow-md my-0.5 flex justify-between px-0.5">
-              <span className="w-1.5 h-full rounded-full bg-amber-900/60" />
-              <span className="w-1.5 h-full rounded-full bg-amber-900/60" />
+            {/* Dây treo lụa vàng & Ngọc bích phong thủy */}
+            <div className="w-1 sm:w-1.5 h-6 sm:h-8 bg-gradient-to-b from-amber-400 to-amber-600 shadow-sm" />
+            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gradient-to-br from-emerald-400 via-emerald-600 to-emerald-900 shadow-md ring-2 ring-amber-300 flex items-center justify-center -my-0.5 z-10">
+              <span className="text-[9px] sm:text-[10px] font-black text-amber-200 font-serif">福</span>
             </div>
 
-            {/* Thân liễn đỏ lụa gấm */}
-            <div className="w-9 sm:w-11 md:w-13 bg-gradient-to-b from-[#991B1B] via-[#7F1D1D] to-[#991B1B] border-x-2 border-y border-amber-400 rounded-sm py-2 px-1 flex flex-col items-center gap-1 sm:gap-1.5 shadow-2xl relative overflow-hidden">
-              {/* Hoa văn chìm trên vải gấm */}
-              <div className="absolute inset-0 opacity-15 bg-[radial-gradient(#fbbf24_1px,transparent_1px)] [background-size:6px_6px] pointer-events-none" />
+            {/* Trục cuốn liễn trên (Gỗ son bọc vàng 24K chạm khắc) */}
+            <div className="w-32 sm:w-36 md:w-42 lg:w-46 h-4 sm:h-5 md:h-6 rounded-full bg-gradient-to-r from-amber-800 via-amber-300 to-amber-800 border-2 border-amber-200 shadow-xl my-0.5 flex justify-between items-center px-1">
+              <span className="w-2.5 h-full rounded-full bg-amber-950/80 border border-amber-400/40" />
+              <div className="flex gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+              </div>
+              <span className="w-2.5 h-full rounded-full bg-amber-950/80 border border-amber-400/40" />
+            </div>
 
-              {/* Chữ thư pháp dọc: NĂM MỚI HẠNH PHÚC BÌNH AN ĐẾN */}
-              {['NĂM', 'MỚI', 'HẠNH', 'PHÚC', 'BÌNH', 'AN', 'ĐẾN'].map((word, i) => (
-                <span
-                  key={i}
-                  className="font-serif font-black text-[9px] sm:text-[11px] md:text-xs text-amber-200 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] leading-tight tracking-wider"
-                >
-                  {word}
-                </span>
+            {/* Thân liễn đỏ lụa gấm (Rộng gấp 3 lần - 120px đến 160px) */}
+            <div className="w-26 sm:w-30 md:w-34 lg:w-38 bg-gradient-to-b from-[#8b0000] via-[#991B1B] to-[#7f1d1d] border-x-4 border-y-2 border-amber-400 rounded-sm py-3 sm:py-4 px-2 flex flex-col items-center gap-1.5 sm:gap-2 shadow-2xl relative overflow-hidden">
+              {/* Viền chỉ vàng hoa văn cung đình 2 bên mép trong */}
+              <div className="absolute left-1 inset-y-1 w-0.5 border-r border-dashed border-amber-400/60" />
+              <div className="absolute right-1 inset-y-1 w-0.5 border-l border-dashed border-amber-400/60" />
+
+              {/* Hoa văn chìm trên vải gấm hoàng gia */}
+              <div className="absolute inset-0 opacity-15 bg-[radial-gradient(#fbbf24_1.5px,transparent_1.5px)] [background-size:10px_10px] pointer-events-none" />
+
+              {/* Chữ thư pháp dọc: NĂM MỚI HẠNH PHÚC BÌNH AN ĐẾN (To, rõ ràng, đọc từ xa) */}
+              {[
+                { w: 'NĂM', sub: '春' },
+                { w: 'MỚI', sub: '新' },
+                { w: 'HẠNH', sub: '福' },
+                { w: 'PHÚC', sub: '祿' },
+                { w: 'BÌNH', sub: '安' },
+                { w: 'AN', sub: '泰' },
+                { w: 'ĐẾN', sub: '來' }
+              ].map((item, i) => (
+                <div key={i} className="flex flex-col items-center justify-center py-0.5">
+                  <span className="font-serif font-black text-sm sm:text-base md:text-lg lg:text-xl text-amber-200 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] leading-none tracking-widest text-center">
+                    {item.w}
+                  </span>
+                </div>
               ))}
 
-              {/* Triện son đỏ vàng may mắn */}
-              <div className="mt-1 w-4 h-4 sm:w-5 sm:h-5 rounded border border-amber-400/80 bg-red-950 flex items-center justify-center text-[7px] sm:text-[8px] font-black text-amber-300 font-serif shadow-xs">
-                CÁT
+              {/* Triện son đỏ vàng may mắn: ĐẠI CÁT TƯỜNG */}
+              <div className="mt-1.5 w-8 h-8 sm:w-9 sm:h-9 rounded-md border-2 border-amber-400 bg-red-950 flex flex-col items-center justify-center shadow-md">
+                <span className="text-[8px] sm:text-[9px] font-black text-amber-300 font-serif leading-none">ĐẠI</span>
+                <span className="text-[8px] sm:text-[9px] font-black text-amber-300 font-serif leading-none">CÁT</span>
               </div>
             </div>
 
             {/* Trục cuốn liễn dưới */}
-            <div className="w-12 sm:w-14 md:w-16 h-2.5 sm:h-3 rounded-full bg-gradient-to-r from-amber-700 via-amber-300 to-amber-700 border border-amber-200 shadow-md my-0.5 flex justify-between px-0.5">
-              <span className="w-1.5 h-full rounded-full bg-amber-900/60" />
-              <span className="w-1.5 h-full rounded-full bg-amber-900/60" />
+            <div className="w-32 sm:w-36 md:w-42 lg:w-46 h-4 sm:h-5 md:h-6 rounded-full bg-gradient-to-r from-amber-800 via-amber-300 to-amber-800 border-2 border-amber-200 shadow-xl my-0.5 flex justify-between items-center px-1">
+              <span className="w-2.5 h-full rounded-full bg-amber-950/80 border border-amber-400/40" />
+              <div className="flex gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+              </div>
+              <span className="w-2.5 h-full rounded-full bg-amber-950/80 border border-amber-400/40" />
             </div>
 
-            {/* Đồng tiền vàng phong thủy & Tua rua vàng kim */}
-            <div className="flex flex-col items-center">
-              <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-gradient-to-br from-amber-300 via-yellow-400 to-amber-600 border border-amber-200 shadow-md flex items-center justify-center p-0.5 mt-0.5">
-                <div className="w-1.5 h-1.5 bg-red-900 border border-amber-300/80" />
+            {/* Đồng tiền vàng phong thủy Chiêu Tài & Tua rua vàng kim lớn */}
+            <div className="flex flex-col items-center mt-0.5">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-br from-amber-300 via-yellow-400 to-amber-600 border-2 border-amber-200 shadow-lg flex items-center justify-center p-1">
+                <div className="w-3 h-3 bg-red-900 border border-amber-300 flex items-center justify-center">
+                  <div className="w-1 h-1 bg-amber-300" />
+                </div>
               </div>
-              <div className="w-1 h-5 sm:h-7 bg-gradient-to-b from-amber-400 via-yellow-300 to-amber-500 rounded-b-md shadow-xs animate-pulse" />
+              <div className="w-2 sm:w-2.5 h-8 sm:h-12 bg-gradient-to-b from-amber-400 via-yellow-300 to-amber-500 rounded-b-lg shadow-md animate-pulse mt-0.5" />
             </div>
           </div>
 
           {/* LIỄN BÊN PHẢI: NGÀY XUÂN VINH HOA PHÚ QUÝ VỀ */}
           <div
-            className={`absolute top-14 sm:top-16 right-1 sm:right-2 md:right-3 z-20 flex flex-col items-center drop-shadow-xl transition-all ${
-              isMini ? 'scale-50 origin-top-right' : 'scale-90 sm:scale-95 md:scale-100 origin-top-right'
+            className={`absolute top-12 sm:top-14 md:top-16 right-1 sm:right-2 md:right-3 lg:right-4 z-20 flex flex-col items-center drop-shadow-2xl transition-all ${
+              isMini ? 'scale-[0.32] origin-top-right' : 'scale-90 sm:scale-95 md:scale-100 origin-top-right'
             }`}
           >
-            {/* Dây treo ngọc đỏ */}
-            <div className="w-0.5 h-4 sm:h-6 bg-amber-400" />
-            <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-gradient-to-br from-amber-300 to-amber-600 shadow-xs ring-1 ring-amber-200" />
+            {/* Dây treo lụa vàng & Ngọc bích phong thủy */}
+            <div className="w-1 sm:w-1.5 h-6 sm:h-8 bg-gradient-to-b from-amber-400 to-amber-600 shadow-sm" />
+            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gradient-to-br from-emerald-400 via-emerald-600 to-emerald-900 shadow-md ring-2 ring-amber-300 flex items-center justify-center -my-0.5 z-10">
+              <span className="text-[9px] sm:text-[10px] font-black text-amber-200 font-serif">壽</span>
+            </div>
 
             {/* Trục cuốn liễn trên */}
-            <div className="w-12 sm:w-14 md:w-16 h-2.5 sm:h-3 rounded-full bg-gradient-to-r from-amber-700 via-amber-300 to-amber-700 border border-amber-200 shadow-md my-0.5 flex justify-between px-0.5">
-              <span className="w-1.5 h-full rounded-full bg-amber-900/60" />
-              <span className="w-1.5 h-full rounded-full bg-amber-900/60" />
+            <div className="w-32 sm:w-36 md:w-42 lg:w-46 h-4 sm:h-5 md:h-6 rounded-full bg-gradient-to-r from-amber-800 via-amber-300 to-amber-800 border-2 border-amber-200 shadow-xl my-0.5 flex justify-between items-center px-1">
+              <span className="w-2.5 h-full rounded-full bg-amber-950/80 border border-amber-400/40" />
+              <div className="flex gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+              </div>
+              <span className="w-2.5 h-full rounded-full bg-amber-950/80 border border-amber-400/40" />
             </div>
 
             {/* Thân liễn đỏ lụa gấm */}
-            <div className="w-9 sm:w-11 md:w-13 bg-gradient-to-b from-[#991B1B] via-[#7F1D1D] to-[#991B1B] border-x-2 border-y border-amber-400 rounded-sm py-2 px-1 flex flex-col items-center gap-1 sm:gap-1.5 shadow-2xl relative overflow-hidden">
-              <div className="absolute inset-0 opacity-15 bg-[radial-gradient(#fbbf24_1px,transparent_1px)] [background-size:6px_6px] pointer-events-none" />
+            <div className="w-26 sm:w-30 md:w-34 lg:w-38 bg-gradient-to-b from-[#8b0000] via-[#991B1B] to-[#7f1d1d] border-x-4 border-y-2 border-amber-400 rounded-sm py-3 sm:py-4 px-2 flex flex-col items-center gap-1.5 sm:gap-2 shadow-2xl relative overflow-hidden">
+              <div className="absolute left-1 inset-y-1 w-0.5 border-r border-dashed border-amber-400/60" />
+              <div className="absolute right-1 inset-y-1 w-0.5 border-l border-dashed border-amber-400/60" />
+
+              <div className="absolute inset-0 opacity-15 bg-[radial-gradient(#fbbf24_1.5px,transparent_1.5px)] [background-size:10px_10px] pointer-events-none" />
 
               {/* Chữ thư pháp dọc: NGÀY XUÂN VINH HOA PHÚ QUÝ VỀ */}
-              {['NGÀY', 'XUÂN', 'VINH', 'HOA', 'PHÚ', 'QUÝ', 'VỀ'].map((word, i) => (
-                <span
-                  key={i}
-                  className="font-serif font-black text-[9px] sm:text-[11px] md:text-xs text-amber-200 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] leading-tight tracking-wider"
-                >
-                  {word}
-                </span>
+              {[
+                { w: 'NGÀY', sub: '日' },
+                { w: 'XUÂN', sub: '春' },
+                { w: 'VINH', sub: '榮' },
+                { w: 'HOA', sub: '華' },
+                { w: 'PHÚ', sub: '富' },
+                { w: 'QUÝ', sub: '貴' },
+                { w: 'VỀ', sub: '歸' }
+              ].map((item, i) => (
+                <div key={i} className="flex flex-col items-center justify-center py-0.5">
+                  <span className="font-serif font-black text-sm sm:text-base md:text-lg lg:text-xl text-amber-200 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] leading-none tracking-widest text-center">
+                    {item.w}
+                  </span>
+                </div>
               ))}
 
-              {/* Triện son đỏ vàng may mắn */}
-              <div className="mt-1 w-4 h-4 sm:w-5 sm:h-5 rounded border border-amber-400/80 bg-red-950 flex items-center justify-center text-[7px] sm:text-[8px] font-black text-amber-300 font-serif shadow-xs">
-                LỘC
+              {/* Triện son đỏ vàng may mắn: TẤN PHÚ QUÝ */}
+              <div className="mt-1.5 w-8 h-8 sm:w-9 sm:h-9 rounded-md border-2 border-amber-400 bg-red-950 flex flex-col items-center justify-center shadow-md">
+                <span className="text-[8px] sm:text-[9px] font-black text-amber-300 font-serif leading-none">PHÚ</span>
+                <span className="text-[8px] sm:text-[9px] font-black text-amber-300 font-serif leading-none">QUÝ</span>
               </div>
             </div>
 
             {/* Trục cuốn liễn dưới */}
-            <div className="w-12 sm:w-14 md:w-16 h-2.5 sm:h-3 rounded-full bg-gradient-to-r from-amber-700 via-amber-300 to-amber-700 border border-amber-200 shadow-md my-0.5 flex justify-between px-0.5">
-              <span className="w-1.5 h-full rounded-full bg-amber-900/60" />
-              <span className="w-1.5 h-full rounded-full bg-amber-900/60" />
+            <div className="w-32 sm:w-36 md:w-42 lg:w-46 h-4 sm:h-5 md:h-6 rounded-full bg-gradient-to-r from-amber-800 via-amber-300 to-amber-800 border-2 border-amber-200 shadow-xl my-0.5 flex justify-between items-center px-1">
+              <span className="w-2.5 h-full rounded-full bg-amber-950/80 border border-amber-400/40" />
+              <div className="flex gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+              </div>
+              <span className="w-2.5 h-full rounded-full bg-amber-950/80 border border-amber-400/40" />
             </div>
 
-            {/* Đồng tiền vàng phong thủy & Tua rua vàng kim */}
-            <div className="flex flex-col items-center">
-              <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-gradient-to-br from-amber-300 via-yellow-400 to-amber-600 border border-amber-200 shadow-md flex items-center justify-center p-0.5 mt-0.5">
-                <div className="w-1.5 h-1.5 bg-red-900 border border-amber-300/80" />
+            {/* Đồng tiền vàng phong thủy Chiêu Tài & Tua rua vàng kim */}
+            <div className="flex flex-col items-center mt-0.5">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-br from-amber-300 via-yellow-400 to-amber-600 border-2 border-amber-200 shadow-lg flex items-center justify-center p-1">
+                <div className="w-3 h-3 bg-red-900 border border-amber-300 flex items-center justify-center">
+                  <div className="w-1 h-1 bg-amber-300" />
+                </div>
               </div>
-              <div className="w-1 h-5 sm:h-7 bg-gradient-to-b from-amber-400 via-yellow-300 to-amber-500 rounded-b-md shadow-xs animate-pulse" />
+              <div className="w-2 sm:w-2.5 h-8 sm:h-12 bg-gradient-to-b from-amber-400 via-yellow-300 to-amber-500 rounded-b-lg shadow-md animate-pulse mt-0.5" />
             </div>
           </div>
         </>
@@ -248,16 +295,37 @@ export const ThemeBackdropDecorations: React.FC<ThemeBackdropDecorationsProps> =
       )}
 
       {/* =========================================================
-          5. THEME MÙA XUÂN: ÉN LƯỢN ĐÓN XUÂN
+          5. THEME MÙA XUÂN: TRÚC XANH LÁ TRE & ÉN LƯỢN ĐÓN XUÂN
          ========================================================= */}
       {themeId === 'spring' && (
-        <div className="absolute top-10 right-12 w-48 h-32 opacity-20 pointer-events-none">
-          <svg viewBox="0 0 200 120" className="w-full h-full fill-emerald-800 text-emerald-800">
-            {/* Pair of Spring Swallows in sky */}
-            <path d="M40 30 Q60 15 90 22 Q75 35 60 38 L45 55 L55 42 Q30 40 40 30 Z" />
-            <path d="M120 60 Q135 48 160 54 Q148 64 136 67 L124 80 L132 70 Q112 68 120 60 Z" />
-          </svg>
-        </div>
+        <>
+          {/* Subtle Bamboo Leaves & Swallows Watermark in Pale Bamboo Green & White */}
+          <div className="absolute top-4 left-6 w-64 h-48 opacity-25 pointer-events-none">
+            <svg viewBox="0 0 200 150" className="w-full h-full" fill="none">
+              {/* Thân cành tre mảnh mai */}
+              <path d="M-10 10 Q 60 40 130 20 T 210 50" stroke="#16a34a" strokeWidth="1.5" strokeLinecap="round" />
+              {/* Cụm lá tre xanh non (Xanh lá tre kết hợp trắng) */}
+              <path d="M50 35 C 70 25, 95 28, 105 18 C 90 26, 75 32, 50 35 Z" fill="#22c55e" />
+              <path d="M65 37 C 88 38, 110 32, 122 25 C 105 34, 85 40, 65 37 Z" fill="#4ade80" />
+              <path d="M80 32 C 100 20, 125 15, 138 6 C 120 18, 98 25, 80 32 Z" fill="#86efac" />
+              <path d="M130 20 C 145 10, 168 12, 180 5 C 162 14, 142 16, 130 20 Z" fill="#22c55e" />
+              <path d="M135 22 C 152 28, 175 25, 188 18 C 170 27, 150 28, 135 22 Z" fill="#4ade80" />
+            </svg>
+          </div>
+
+          <div className="absolute top-8 right-12 w-56 h-36 opacity-30 pointer-events-none">
+            <svg viewBox="0 0 200 120" className="w-full h-full fill-[#15803d]">
+              {/* Cặp chim én sải cánh chao liệng thanh tao */}
+              <path d="M40 30 Q60 15 90 22 Q75 35 60 38 L45 55 L55 42 Q30 40 40 30 Z" />
+              <path d="M120 60 Q135 48 160 54 Q148 64 136 67 L124 80 L132 70 Q112 68 120 60 Z" />
+              {/* Nhành lộc xuân non */}
+              <path d="M70 28 C 76 22, 85 24, 88 18 C 82 23, 76 25, 70 28 Z" fill="#86efac" />
+            </svg>
+          </div>
+
+          {/* Dải sáng sương mai nhạt nhòa thanh khiết */}
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,#dcfce725,transparent_70%)] pointer-events-none" />
+        </>
       )}
 
       {/* =========================================================
