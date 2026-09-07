@@ -1,11 +1,12 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
 import { 
-  initializeFirestore, 
   getFirestore, 
   doc, 
   onSnapshot, 
   setDoc, 
   getDoc,
+  getDocFromServer,
   Unsubscribe 
 } from 'firebase/firestore';
 import { GoldItem, StoreSettings, PublicRatesResponse } from './types';
@@ -29,6 +30,68 @@ export const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getA
 export const db = firebaseConfig.firestoreDatabaseId && firebaseConfig.firestoreDatabaseId !== '(default)'
   ? getFirestore(app, firebaseConfig.firestoreDatabaseId)
   : getFirestore(app);
+
+// Initialize Firebase Auth
+export const auth = getAuth(app);
+
+export enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+export interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+    tenantId?: string | null;
+    providerInfo?: {
+      providerId?: string | null;
+      email?: string | null;
+    }[];
+  };
+}
+
+export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+      tenantId: auth.currentUser?.tenantId,
+      providerInfo: auth.currentUser?.providerData?.map(provider => ({
+        providerId: provider.providerId,
+        email: provider.email,
+      })) || []
+    },
+    operationType,
+    path
+  };
+  console.warn('Firestore Error: ', JSON.stringify(errInfo));
+  return errInfo;
+}
+
+// Test initial connection to Firestore
+export async function testConnection() {
+  try {
+    await getDocFromServer(doc(db, 'test', 'connection'));
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('the client is offline')) {
+      console.warn("Please check your Firebase configuration or network connectivity.");
+    }
+  }
+}
+testConnection();
 
 // Document paths
 const STORE_CONFIG_DOC = 'store_configs/main';
@@ -61,7 +124,7 @@ export function subscribeToStoreConfig(
       }
     },
     (err) => {
-      console.warn('[Firebase] Firestore onSnapshot warning:', err);
+      handleFirestoreError(err, OperationType.GET, STORE_CONFIG_DOC);
       if (onError) onError(err);
     }
   );
@@ -90,7 +153,7 @@ export async function saveStoreConfigToFirebase(
     await setDoc(docRef, payload, { merge: true });
     return true;
   } catch (error) {
-    console.error('[Firebase] Error saving to Firestore:', error);
+    handleFirestoreError(error, OperationType.WRITE, STORE_CONFIG_DOC);
     return false;
   }
 }
@@ -107,7 +170,7 @@ export async function fetchStoreConfigFromFirebase(): Promise<FirebaseStoreData 
     }
     return null;
   } catch (error) {
-    console.warn('[Firebase] Error reading from Firestore:', error);
+    handleFirestoreError(error, OperationType.GET, STORE_CONFIG_DOC);
     return null;
   }
 }
@@ -130,7 +193,7 @@ export function subscribeToMarketRates(
       }
     },
     (err) => {
-      console.warn('[Firebase] Market rates listener error:', err);
+      handleFirestoreError(err, OperationType.GET, MARKET_RATES_DOC);
     }
   );
 }
@@ -143,6 +206,6 @@ export async function saveMarketRatesToFirebase(data: PublicRatesResponse): Prom
     const docRef = doc(db, 'market_rates', 'latest');
     await setDoc(docRef, data, { merge: true });
   } catch (error) {
-    console.warn('[Firebase] Error saving market rates to Firestore:', error);
+    handleFirestoreError(error, OperationType.WRITE, MARKET_RATES_DOC);
   }
 }

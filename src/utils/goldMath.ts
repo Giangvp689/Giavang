@@ -63,23 +63,27 @@ export function calculateStorePrices(item: GoldItem, settings: StoreSettings): {
   let finalSell: number;
   let isCustom = false;
 
-  // Fallback defaults to current market reality (144.6tr - 147.6tr)
-  const rawBuy = item.apiBuy || item.baseBuy || 144600000;
-  const rawSell = item.apiSell || item.baseSell || 147600000;
+  // Fallback defaults to current market reality (143.5tr - 146.5tr)
+  const rawBuy = item.apiBuy || item.baseBuy || 143500000;
+  const rawSell = item.apiSell || item.baseSell || 146500000;
   const pricingMode = settings.pricingMode || 'auto_market';
 
-  // 1. Chế độ TỰ ĐỘNG THỊ TRƯỜNG CHUẨN 100% (Giá SJC, PNJ, DOJI, AAA gốc không bị lệch)
-  if (pricingMode === 'auto_market') {
+  // 1. Khi loại vàng này được chỉnh sửa giá riêng (hoặc chế độ gõ giá thủ công)
+  if (item.useCustomPrice || pricingMode === 'custom_override') {
+    finalBuy = item.customBuy !== null && item.customBuy !== undefined && item.customBuy > 0 
+      ? Math.round(item.customBuy) 
+      : rawBuy;
+    finalSell = item.customSell !== null && item.customSell !== undefined && item.customSell > 0 
+      ? Math.round(item.customSell) 
+      : rawSell;
+    isCustom = true;
+  }
+  // 2. Chế độ TỰ ĐỘNG THỊ TRƯỜNG CHUẨN 100% (Giá SJC, PNJ, DOJI, AAA gốc không bị lệch)
+  else if (pricingMode === 'auto_market') {
     finalBuy = rawBuy;
     finalSell = rawSell;
     isCustom = false;
   }
-  // 2. Chế độ GÕ GIÁ THỦ CÔNG (Khi chủ tiệm tự đặt giá cứng cho loại vàng này)
-  else if ((item.useCustomPrice || pricingMode === 'custom_override') && item.customBuy && item.customSell) {
-    finalBuy = Math.round(item.customBuy);
-    finalSell = Math.round(item.customSell);
-    isCustom = true;
-  } 
   // 3. Chế độ TỰ ĐỘNG + CHÊNH LỆCH TIỆM (Thị trường +/- tiền hoặc %)
   else {
     const calcType = settings.calculationType || 'amount_delta';

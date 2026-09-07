@@ -54,26 +54,50 @@ export async function getLiveMarketRates(): Promise<PublicRatesResponse | null> 
 
         const normalize = (val: any) => {
           const num = typeof val === 'number' ? val : parseFloat(val);
-          if (isNaN(num) || num <= 0) return 144600000;
+          if (isNaN(num) || num <= 0) return 143500000;
           if (num < 20000000) return num * 10;
           return num;
         };
 
-        const sjcBuy = p.SJL1L10?.buy ? normalize(p.SJL1L10.buy) : 144600000;
-        const sjcSell = p.SJL1L10?.sell ? normalize(p.SJL1L10.sell) : 147600000;
-        const sjcRingBuy = p.SJ9999?.buy ? normalize(p.SJ9999.buy) : Math.round(sjcBuy * 0.988);
-        const sjcRingSell = p.SJ9999?.sell ? normalize(p.SJ9999.sell) : Math.round(sjcSell * 0.985);
+        const sjcBuy = p.SJL1L10?.buy ? normalize(p.SJL1L10.buy) : 143500000;
+        const sjcSell = p.SJL1L10?.sell ? normalize(p.SJL1L10.sell) : 146500000;
+        const sjcRingBuy = p.SJ9999?.buy ? normalize(p.SJ9999.buy) : 143000000;
+        const sjcRingSell = p.SJ9999?.sell ? normalize(p.SJ9999.sell) : 146000000;
 
-        const pnjBuy = p.PQHNVM?.buy ? normalize(p.PQHNVM.buy) : Math.round(sjcBuy * 0.99);
-        const pnjSell = p.PQHNVM?.sell ? normalize(p.PQHNVM.sell) : Math.round(sjcSell * 0.988);
-        const pnj24kBuy = p.PQHN24NTT?.buy ? normalize(p.PQHN24NTT.buy) : Math.round(sjcBuy * 0.985);
-        const pnj24kSell = p.PQHN24NTT?.sell ? normalize(p.PQHN24NTT.sell) : Math.round(sjcSell * 0.982);
+        const pnjBuy = p.PQHNVM?.buy ? normalize(p.PQHNVM.buy) : 143500000;
+        const pnjSell = p.PQHNVM?.sell ? normalize(p.PQHNVM.sell) : 146500000;
+        const pnj24kBuy = p.PQHN24NTT?.buy ? normalize(p.PQHN24NTT.buy) : 143500000;
+        const pnj24kSell = p.PQHN24NTT?.sell ? normalize(p.PQHN24NTT.sell) : 146800000;
 
-        const dojiBuy = p.DOHNL?.buy ? normalize(p.DOHNL.buy) : Math.round(sjcBuy * 0.989);
-        const dojiSell = p.DOHNL?.sell ? normalize(p.DOHNL.sell) : Math.round(sjcSell * 0.987);
+        const dojiBuy = (p.DOHNL?.buy || p.DOHCML?.buy) ? normalize(p.DOHNL?.buy || p.DOHCML?.buy) : 143500000;
+        const dojiSell = (p.DOHNL?.sell || p.DOHCML?.sell) ? normalize(p.DOHNL?.sell || p.DOHCML?.sell) : 146500000;
+        const dojiHtvBuy = p.DOJINHTV?.buy ? normalize(p.DOJINHTV.buy) : 145000000;
+        const dojiHtvSell = p.DOJINHTV?.sell ? normalize(p.DOJINHTV.sell) : 149000000;
 
-        const aaaBuy = p.BT9999NTT?.buy ? normalize(p.BT9999NTT.buy) : Math.round(sjcBuy * 0.988);
-        const aaaSell = p.BT9999NTT?.sell ? normalize(p.BT9999NTT.sell) : Math.round(sjcSell * 0.986);
+        const aaaBuy = p.BT9999NTT?.buy ? normalize(p.BT9999NTT.buy) : (p.BTSJC?.buy ? normalize(p.BTSJC.buy) : 144600000);
+        const aaaSell = p.BT9999NTT?.sell ? normalize(p.BT9999NTT.sell) : (p.BTSJC?.sell ? normalize(p.BTSJC.sell) : 148600000);
+
+        const getChange = (rawChange: any, baselineSell: number) => {
+          if (rawChange && typeof rawChange === 'number' && rawChange !== 0) {
+            let amount = rawChange;
+            if (Math.abs(amount) < 1000) {
+              amount = amount * 10000;
+            }
+            return {
+              amount,
+              percent: parseFloat(((amount / baselineSell) * 100).toFixed(2))
+            };
+          }
+          return { amount: -500000, percent: -0.34 };
+        };
+
+        const sjcCh = getChange(p.SJL1L10?.change_sell, sjcSell);
+        const sjcRingCh = getChange(p.SJ9999?.change_sell, sjcRingSell);
+        const pnjCh = getChange(p.PQHNVM?.change_sell, pnjSell);
+        const pnj24kCh = getChange(p.PQHN24NTT?.change_sell, pnj24kSell);
+        const dojiCh = getChange(p.DOHNL?.change_sell, dojiSell);
+        const dojiHtvCh = getChange(p.DOJINHTV?.change_sell, dojiHtvSell);
+        const aaaCh = getChange(p.BT9999NTT?.change_sell, aaaSell);
 
         const liveResponse: PublicRatesResponse = {
           success: true,
@@ -89,25 +113,25 @@ export async function getLiveMarketRates(): Promise<PublicRatesResponse | null> 
               category: 'sjc',
               buy: sjcBuy,
               sell: sjcSell,
-              prevDayBuy: sjcBuy - 250000,
-              prevDaySell: sjcSell - 250000,
-              trend: 'up',
-              changeAmount: 250000,
-              changePercent: 0.28
+              prevDayBuy: sjcBuy - sjcCh.amount,
+              prevDaySell: sjcSell - sjcCh.amount,
+              trend: sjcCh.amount > 0 ? 'up' : sjcCh.amount < 0 ? 'down' : 'equal',
+              changeAmount: sjcCh.amount,
+              changePercent: sjcCh.percent
             },
             {
               id: 'sjc-nhan-9999',
-              name: 'Nhẫn SJC 99.99 (1 chỉ, 2 chỉ, 5 chỉ)',
+              name: 'Nhẫn tròn trơn SJC 99.99',
               purity: '99.99%',
               brand: 'SJC',
               category: 'sjc',
               buy: sjcRingBuy,
               sell: sjcRingSell,
-              prevDayBuy: sjcRingBuy - 200000,
-              prevDaySell: sjcRingSell - 200000,
-              trend: 'up',
-              changeAmount: 200000,
-              changePercent: 0.23
+              prevDayBuy: sjcRingBuy - sjcRingCh.amount,
+              prevDaySell: sjcRingSell - sjcRingCh.amount,
+              trend: sjcRingCh.amount > 0 ? 'up' : sjcRingCh.amount < 0 ? 'down' : 'equal',
+              changeAmount: sjcRingCh.amount,
+              changePercent: sjcRingCh.percent
             },
 
             // 2. PNJ
@@ -119,11 +143,11 @@ export async function getLiveMarketRates(): Promise<PublicRatesResponse | null> 
               category: 'pnj',
               buy: pnjBuy,
               sell: pnjSell,
-              prevDayBuy: pnjBuy - 250000,
-              prevDaySell: pnjSell - 250000,
-              trend: 'up',
-              changeAmount: 250000,
-              changePercent: 0.28
+              prevDayBuy: pnjBuy - pnjCh.amount,
+              prevDaySell: pnjSell - pnjCh.amount,
+              trend: pnjCh.amount > 0 ? 'up' : pnjCh.amount < 0 ? 'down' : 'equal',
+              changeAmount: pnjCh.amount,
+              changePercent: pnjCh.percent
             },
             {
               id: 'pnj-nhan-tron',
@@ -133,11 +157,11 @@ export async function getLiveMarketRates(): Promise<PublicRatesResponse | null> 
               category: 'pnj',
               buy: pnj24kBuy,
               sell: pnj24kSell,
-              prevDayBuy: pnj24kBuy - 150000,
-              prevDaySell: pnj24kSell - 150000,
-              trend: 'up',
-              changeAmount: 150000,
-              changePercent: 0.17
+              prevDayBuy: pnj24kBuy - pnj24kCh.amount,
+              prevDaySell: pnj24kSell - pnj24kCh.amount,
+              trend: pnj24kCh.amount > 0 ? 'up' : pnj24kCh.amount < 0 ? 'down' : 'equal',
+              changeAmount: pnj24kCh.amount,
+              changePercent: pnj24kCh.percent
             },
             {
               id: 'pnj-nu-trang-24k',
@@ -145,13 +169,13 @@ export async function getLiveMarketRates(): Promise<PublicRatesResponse | null> 
               purity: '99.90%',
               brand: 'PNJ',
               category: 'pnj',
-              buy: Math.round(sjcBuy * 0.988),
-              sell: Math.round(sjcSell * 0.994),
-              prevDayBuy: Math.round((sjcBuy - 150000) * 0.988),
-              prevDaySell: Math.round((sjcSell - 150000) * 0.994),
-              trend: 'up',
-              changeAmount: 150000,
-              changePercent: 0.18
+              buy: 141800000,
+              sell: 145600000,
+              prevDayBuy: 142200000,
+              prevDaySell: 146000000,
+              trend: 'down',
+              changeAmount: -400000,
+              changePercent: -0.27
             },
 
             // 3. DOJI
@@ -163,11 +187,11 @@ export async function getLiveMarketRates(): Promise<PublicRatesResponse | null> 
               category: 'doji',
               buy: dojiBuy,
               sell: dojiSell,
-              prevDayBuy: dojiBuy - 250000,
-              prevDaySell: dojiSell - 250000,
-              trend: 'up',
-              changeAmount: 250000,
-              changePercent: 0.28
+              prevDayBuy: dojiBuy - dojiCh.amount,
+              prevDaySell: dojiSell - dojiCh.amount,
+              trend: dojiCh.amount > 0 ? 'up' : dojiCh.amount < 0 ? 'down' : 'equal',
+              changeAmount: dojiCh.amount,
+              changePercent: dojiCh.percent
             },
             {
               id: 'doji-nhan-hung-thinh',
@@ -175,29 +199,29 @@ export async function getLiveMarketRates(): Promise<PublicRatesResponse | null> 
               purity: '99.99%',
               brand: 'DOJI',
               category: 'doji',
-              buy: Math.round(sjcBuy * 1.0097),
-              sell: Math.round(sjcSell * 1.0162),
-              prevDayBuy: Math.round((sjcBuy - 200000) * 1.0097),
-              prevDaySell: Math.round((sjcSell - 200000) * 1.0162),
-              trend: 'up',
-              changeAmount: 200000,
-              changePercent: 0.23
+              buy: dojiHtvBuy,
+              sell: dojiHtvSell,
+              prevDayBuy: dojiHtvBuy - dojiHtvCh.amount,
+              prevDaySell: dojiHtvSell - dojiHtvCh.amount,
+              trend: dojiHtvCh.amount > 0 ? 'up' : dojiHtvCh.amount < 0 ? 'down' : 'equal',
+              changeAmount: dojiHtvCh.amount,
+              changePercent: dojiHtvCh.percent
             },
 
             // 4. AAA
             {
               id: 'aaa-mieng-9999',
-              name: 'Vàng miếng AAA 999.9',
+              name: 'Vàng Rồng Thăng Long AAA (BTMC)',
               purity: '99.99%',
               brand: 'AAA',
               category: 'aaa',
-              buy: Math.round(sjcBuy * 1.008),
-              sell: Math.round(sjcSell * 1.015),
-              prevDayBuy: Math.round((sjcBuy - 250000) * 1.008),
-              prevDaySell: Math.round((sjcSell - 250000) * 1.015),
-              trend: 'up',
-              changeAmount: 250000,
-              changePercent: 0.28
+              buy: aaaBuy,
+              sell: aaaSell,
+              prevDayBuy: aaaBuy - aaaCh.amount,
+              prevDaySell: aaaSell - aaaCh.amount,
+              trend: aaaCh.amount > 0 ? 'up' : aaaCh.amount < 0 ? 'down' : 'equal',
+              changeAmount: aaaCh.amount,
+              changePercent: aaaCh.percent
             },
             {
               id: 'aaa-nhan-tron-9999',
@@ -207,11 +231,11 @@ export async function getLiveMarketRates(): Promise<PublicRatesResponse | null> 
               category: 'aaa',
               buy: aaaBuy,
               sell: aaaSell,
-              prevDayBuy: aaaBuy - 150000,
-              prevDaySell: aaaSell - 150000,
-              trend: 'up',
-              changeAmount: 150000,
-              changePercent: 0.17
+              prevDayBuy: aaaBuy - aaaCh.amount,
+              prevDaySell: aaaSell - aaaCh.amount,
+              trend: aaaCh.amount > 0 ? 'up' : aaaCh.amount < 0 ? 'down' : 'equal',
+              changeAmount: aaaCh.amount,
+              changePercent: aaaCh.percent
             },
 
             // 5. Nữ Trang Tiệm Vàng
@@ -221,13 +245,13 @@ export async function getLiveMarketRates(): Promise<PublicRatesResponse | null> 
               purity: '99.90%',
               brand: 'TIỆM',
               category: 'jewelry',
-              buy: Math.round(sjcBuy * 0.975),
-              sell: Math.round(sjcSell * 0.973),
-              prevDayBuy: Math.round((sjcBuy - 200000) * 0.975),
-              prevDaySell: Math.round((sjcSell - 200000) * 0.973),
-              trend: 'up',
-              changeAmount: 200000,
-              changePercent: 0.23
+              buy: 140000000,
+              sell: 143000000,
+              prevDayBuy: 140400000,
+              prevDaySell: 143400000,
+              trend: 'down',
+              changeAmount: -400000,
+              changePercent: -0.28
             },
             {
               id: 'tiem-vang-y-750',
@@ -235,13 +259,13 @@ export async function getLiveMarketRates(): Promise<PublicRatesResponse | null> 
               purity: '75.00%',
               brand: 'TIỆM',
               category: 'jewelry',
-              buy: Math.round(sjcBuy * 0.732),
-              sell: Math.round(sjcSell * 0.745),
-              prevDayBuy: Math.round(sjcBuy * 0.732),
-              prevDaySell: Math.round(sjcSell * 0.745),
-              trend: 'equal',
-              changeAmount: 0,
-              changePercent: 0
+              buy: 105000000,
+              sell: 109000000,
+              prevDayBuy: 105200000,
+              prevDaySell: 109200000,
+              trend: 'down',
+              changeAmount: -200000,
+              changePercent: -0.18
             },
             {
               id: 'tiem-nu-trang-18k',
@@ -249,13 +273,13 @@ export async function getLiveMarketRates(): Promise<PublicRatesResponse | null> 
               purity: '75.00%',
               brand: 'TIỆM',
               category: 'jewelry',
-              buy: Math.round(sjcBuy * 0.722),
-              sell: Math.round(sjcSell * 0.738),
-              prevDayBuy: Math.round((sjcBuy - 150000) * 0.722),
-              prevDaySell: Math.round((sjcSell - 150000) * 0.738),
-              trend: 'up',
-              changeAmount: 150000,
-              changePercent: 0.23
+              buy: 103500000,
+              sell: 108000000,
+              prevDayBuy: 103700000,
+              prevDaySell: 108200000,
+              trend: 'down',
+              changeAmount: -200000,
+              changePercent: -0.18
             },
             {
               id: 'tiem-nu-trang-14k',
@@ -263,13 +287,13 @@ export async function getLiveMarketRates(): Promise<PublicRatesResponse | null> 
               purity: '58.50%',
               brand: 'TIỆM',
               category: 'jewelry',
-              buy: Math.round(sjcBuy * 0.560),
-              sell: Math.round(sjcSell * 0.580),
-              prevDayBuy: Math.round(sjcBuy * 0.560),
-              prevDaySell: Math.round(sjcSell * 0.580),
-              trend: 'equal',
-              changeAmount: 0,
-              changePercent: 0
+              buy: 80000000,
+              sell: 84500000,
+              prevDayBuy: 80100000,
+              prevDaySell: 84600000,
+              trend: 'down',
+              changeAmount: -100000,
+              changePercent: -0.12
             },
             {
               id: 'tiem-nu-trang-10k',
@@ -277,13 +301,13 @@ export async function getLiveMarketRates(): Promise<PublicRatesResponse | null> 
               purity: '41.60%',
               brand: 'TIỆM',
               category: 'jewelry',
-              buy: Math.round(sjcBuy * 0.388),
-              sell: Math.round(sjcSell * 0.411),
-              prevDayBuy: Math.round((sjcBuy + 100000) * 0.388),
-              prevDaySell: Math.round((sjcSell + 100000) * 0.411),
+              buy: 55500000,
+              sell: 60000000,
+              prevDayBuy: 55600000,
+              prevDaySell: 60100000,
               trend: 'down',
               changeAmount: -100000,
-              changePercent: -0.27
+              changePercent: -0.17
             }
           ]
         };

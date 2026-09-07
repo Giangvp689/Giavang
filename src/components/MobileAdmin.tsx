@@ -356,22 +356,27 @@ export const MobileAdmin: React.FC<MobileAdminProps> = ({
   const handleQuickAdjust = (itemId: string, field: 'customBuy' | 'customSell', deltaPerChiInThousands: number) => {
     const deltaVndPerLuong = deltaPerChiInThousands * 1000 * 10;
     
-    setLocalItems(prev => prev.map(item => {
-      if (item.id !== itemId) return item;
+    setLocalItems(prev => {
+      const updated = prev.map(item => {
+        if (item.id !== itemId) return item;
 
-      const { finalBuy, finalSell } = calculateStorePrices(item, localSettings);
-      const currentPrice = field === 'customBuy' 
-        ? (item.customBuy ?? finalBuy) 
-        : (item.customSell ?? finalSell);
+        const { finalBuy, finalSell } = calculateStorePrices(item, localSettings);
+        const currentBuy = item.customBuy ?? finalBuy;
+        const currentSell = item.customSell ?? finalSell;
 
-      const newPrice = Math.max(1000000, currentPrice + deltaVndPerLuong);
+        const newBuy = field === 'customBuy' ? Math.max(1000000, currentBuy + deltaVndPerLuong) : currentBuy;
+        const newSell = field === 'customSell' ? Math.max(1000000, currentSell + deltaVndPerLuong) : currentSell;
 
-      return {
-        ...item,
-        [field]: newPrice,
-        useCustomPrice: true
-      };
-    }));
+        return {
+          ...item,
+          customBuy: newBuy,
+          customSell: newSell,
+          useCustomPrice: true
+        };
+      });
+      onUpdateItems(updated);
+      return updated;
+    });
   };
 
   // Set direct price in nghìn VND/chỉ (e.g. 14360)
@@ -382,27 +387,37 @@ export const MobileAdmin: React.FC<MobileAdminProps> = ({
     // Convert thousands/chỉ to VND/lượng
     const vndPerLuong = num * 1000 * 10;
 
-    setLocalItems(prev => prev.map(item => {
-      if (item.id !== itemId) return item;
-      return {
-        ...item,
-        [field]: vndPerLuong,
-        useCustomPrice: true
-      };
-    }));
+    setLocalItems(prev => {
+      const updated = prev.map(item => {
+        if (item.id !== itemId) return item;
+        const { finalBuy, finalSell } = calculateStorePrices(item, localSettings);
+        return {
+          ...item,
+          customBuy: field === 'customBuy' ? vndPerLuong : (item.customBuy ?? finalBuy),
+          customSell: field === 'customSell' ? vndPerLuong : (item.customSell ?? finalSell),
+          useCustomPrice: true
+        };
+      });
+      onUpdateItems(updated);
+      return updated;
+    });
   };
 
   // Reset item to automatic market API price
   const handleResetToAuto = (itemId: string) => {
-    setLocalItems(prev => prev.map(item => {
-      if (item.id !== itemId) return item;
-      return {
-        ...item,
-        customBuy: null,
-        customSell: null,
-        useCustomPrice: false
-      };
-    }));
+    setLocalItems(prev => {
+      const updated = prev.map(item => {
+        if (item.id !== itemId) return item;
+        return {
+          ...item,
+          customBuy: null,
+          customSell: null,
+          useCustomPrice: false
+        };
+      });
+      onUpdateItems(updated);
+      return updated;
+    });
   };
 
   // Reset ALL items to automatic market price & switch pricingMode to 'auto_market'
@@ -710,6 +725,107 @@ export const MobileAdmin: React.FC<MobileAdminProps> = ({
                     <div className="text-[9px] opacity-80 mt-0.5">Tiệm gõ thủ công</div>
                   </button>
                 </div>
+
+                {/* Khối điều chỉnh chênh lệch tiệm khi ở chế độ Tự Động + Tiệm */}
+                {localSettings.pricingMode === 'formula' && (
+                  <div className="mt-2 bg-amber-50/80 rounded-2xl border border-amber-300 p-2.5 space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-black text-amber-950 flex items-center gap-1">
+                        <Sliders className="w-3.5 h-3.5 text-amber-700" />
+                        <span>Chênh Lệch Toàn Tiệm So Với Thị Trường:</span>
+                      </span>
+                      <span className="text-[10px] text-amber-800 font-bold bg-amber-200/70 px-1.5 py-0.5 rounded">
+                        Tự động +/- giá gốc
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {/* Mua vào */}
+                      <div className="bg-white rounded-xl p-2 border border-blue-200 shadow-2xs">
+                        <div className="flex items-center justify-between text-[11px] font-black text-blue-900 mb-1">
+                          <span>MUA VÀO SO VỚI GỐC:</span>
+                          <span className="font-mono text-blue-700">
+                            {(localSettings.buyAmountDeltaPerChi ?? 0) === 0
+                              ? 'Chuẩn gốc (0)'
+                              : `${(localSettings.buyAmountDeltaPerChi ?? 0) > 0 ? '-' : '+'}${Math.abs(localSettings.buyAmountDeltaPerChi ?? 0)}k/chỉ`}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-6 gap-1">
+                          {[
+                            { val: 100, label: '-100k' },
+                            { val: 50, label: '-50k' },
+                            { val: 20, label: '-20k' },
+                            { val: 0, label: 'Gốc' },
+                            { val: -20, label: '+20k' },
+                            { val: -50, label: '+50k' }
+                          ].map((opt) => (
+                            <button
+                              key={opt.val}
+                              type="button"
+                              onClick={() => {
+                                const updated: StoreSettings = {
+                                  ...localSettings,
+                                  buyAmountDeltaPerChi: opt.val
+                                };
+                                setLocalSettings(updated);
+                                onUpdateSettings(updated);
+                              }}
+                              className={`py-1 rounded text-[10px] font-black cursor-pointer border text-center transition-all ${
+                                (localSettings.buyAmountDeltaPerChi ?? 0) === opt.val
+                                  ? 'bg-blue-600 text-white border-blue-700 shadow-xs'
+                                  : 'bg-blue-50/50 hover:bg-blue-100 text-blue-800 border-blue-200'
+                              }`}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Bán ra */}
+                      <div className="bg-white rounded-xl p-2 border border-red-200 shadow-2xs">
+                        <div className="flex items-center justify-between text-[11px] font-black text-red-900 mb-1">
+                          <span>BÁN RA SO VỚI GỐC:</span>
+                          <span className="font-mono text-red-700">
+                            {(localSettings.sellAmountDeltaPerChi ?? 0) === 0
+                              ? 'Chuẩn gốc (0)'
+                              : `${(localSettings.sellAmountDeltaPerChi ?? 0) > 0 ? '+' : ''}${localSettings.sellAmountDeltaPerChi ?? 0}k/chỉ`}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-6 gap-1">
+                          {[
+                            { val: -50, label: '-50k' },
+                            { val: -20, label: '-20k' },
+                            { val: 0, label: 'Gốc' },
+                            { val: 20, label: '+20k' },
+                            { val: 50, label: '+50k' },
+                            { val: 100, label: '+100k' }
+                          ].map((opt) => (
+                            <button
+                              key={opt.val}
+                              type="button"
+                              onClick={() => {
+                                const updated: StoreSettings = {
+                                  ...localSettings,
+                                  sellAmountDeltaPerChi: opt.val
+                                };
+                                setLocalSettings(updated);
+                                onUpdateSettings(updated);
+                              }}
+                              className={`py-1 rounded text-[10px] font-black cursor-pointer border text-center transition-all ${
+                                (localSettings.sellAmountDeltaPerChi ?? 0) === opt.val
+                                  ? 'bg-red-600 text-white border-red-700 shadow-xs'
+                                  : 'bg-red-50/50 hover:bg-red-100 text-red-800 border-red-200'
+                              }`}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Bộ lọc thương hiệu */}

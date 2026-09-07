@@ -6,16 +6,42 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Connection health check
+    match /test/{docId} {
+      allow read: if true;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidStoreConfig(data) {
+      return data.keys().hasAll(['items', 'settings', 'updatedAt']) &&
+             data.items is list && data.items.size() <= 100 &&
+             data.settings is map &&
+             data.updatedAt is string && data.updatedAt.size() <= 64;
+    }
+
+    function isValidMarketRate(data) {
+      return data.keys().hasAll(['success', 'source', 'timestamp', 'rates']) &&
+             data.success is bool &&
+             data.source is string && data.source.size() <= 200 &&
+             data.timestamp is string && data.timestamp.size() <= 100 &&
+             data.rates is list && data.rates.size() <= 100;
+    }
+
     // Tiệm vàng Đức Kỳ - Realtime sync for TV display, Mobile Admin, and Settings
     match /store_configs/{configId} {
       allow read: if true;
-      allow write: if true;
+      allow create, update: if isValidId(configId) && isValidStoreConfig(request.resource.data);
+      allow delete: if false;
     }
 
     // Aggregated real-time market gold rates
     match /market_rates/{rateId} {
       allow read: if true;
-      allow write: if true;
+      allow create, update: if isValidId(rateId) && isValidMarketRate(request.resource.data);
+      allow delete: if false;
     }
   }
 }

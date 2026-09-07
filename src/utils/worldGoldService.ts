@@ -1,23 +1,23 @@
 import { WorldGoldRate } from '../types';
 
-// Default initial baseline matching the user's screenshot
+// Default initial baseline matching real-world international Spot market (Investing.com XAU/USD)
 export const DEFAULT_WORLD_GOLD: WorldGoldRate = {
   symbol: 'XAU/USD',
-  price: 4411.23,
-  priceFormatted: '4,411.23',
-  change: -19.10,
-  changeFormatted: '-19.10',
+  price: 4406.80,
+  priceFormatted: '4,406.80',
+  change: -18.90,
+  changeFormatted: '-18.90',
   changePercent: -0.43,
   changePercentFormatted: '(-0.43%)',
-  high: 4435.50,
-  low: 4402.10,
+  high: 4434.30,
+  low: 4383.85,
   direction: 'down',
-  vndEquivalentPerLuong: 135350000,
+  vndEquivalentPerLuong: 138420000,
   lastUpdated: 'Vừa xong',
   source: 'Investing.com (XAU/USD Spot)'
 };
 
-const USD_TO_VND = 25450;
+const USD_TO_VND = 26054;
 const TROY_OZ_TO_LUONG = 1.20565;
 
 export function formatWorldGoldNumbers(

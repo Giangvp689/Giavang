@@ -110,10 +110,12 @@ export const OwnerAdmin: React.FC<OwnerAdminProps> = ({
   const updateItemCustomPrice = (id: string, field: 'customBuy' | 'customSell', val: number | null) => {
     const updated = localItems.map(item => {
       if (item.id === id) {
+        const { finalBuy, finalSell } = calculateStorePrices(item, localSettings);
         const isCustom = val !== null || (field === 'customBuy' ? item.customSell !== null : item.customBuy !== null);
         return {
           ...item,
-          [field]: val,
+          customBuy: field === 'customBuy' ? val : (item.customBuy ?? (val !== null ? finalBuy : null)),
+          customSell: field === 'customSell' ? val : (item.customSell ?? (val !== null ? finalSell : null)),
           useCustomPrice: isCustom
         };
       }
