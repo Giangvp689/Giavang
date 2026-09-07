@@ -4,7 +4,7 @@ import { WorldGoldRate } from '../types';
 import { fetchWorldGoldPrice, formatWorldGoldNumbers, DEFAULT_WORLD_GOLD } from '../utils/worldGoldService';
 
 interface WorldGoldTickerProps {
-  variant?: 'header' | 'card' | 'compact' | 'marquee';
+  variant?: 'header' | 'card' | 'compact' | 'marquee' | 'corner';
   className?: string;
   showVndConversion?: boolean;
 }
@@ -126,6 +126,41 @@ export const WorldGoldTicker: React.FC<WorldGoldTickerProps> = ({
         </span>
         <span className={`font-mono font-bold text-xs flex items-center gap-0.5 ${changeColor}`}>
           {data.changeFormatted} {data.changePercentFormatted} {changeIcon}
+        </span>
+      </div>
+    );
+  }
+
+  // Variant === 'corner': Hiển thị gọn gàng ở 1 góc màn hình (ví dụ góc thanh thông báo chân trang)
+  if (variant === 'corner') {
+    return (
+      <div
+        className={`inline-flex items-center gap-1.5 sm:gap-2.5 px-2.5 sm:px-3.5 py-1 rounded-lg sm:rounded-xl border transition-all duration-300 shadow-xs select-none ${containerBg} ${className}`}
+        title={`Giá vàng quốc tế trực tiếp từ Investing.com (XAU/USD) • Cập nhật: ${data.lastUpdated}`}
+      >
+        {/* Pulsing indicator */}
+        <span className="relative flex h-2.5 w-2.5 flex-shrink-0">
+          <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isUp ? 'bg-emerald-400' : 'bg-red-400'}`}></span>
+          <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${isUp ? 'bg-emerald-500' : 'bg-red-500'}`}></span>
+        </span>
+
+        {/* Small badge */}
+        <span className="text-xs sm:text-sm font-black uppercase tracking-wider text-neutral-800 flex items-center gap-1 whitespace-nowrap">
+          <Globe className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
+          <span>TG:</span>
+        </span>
+
+        {/* Real-time price: To bằng số trong cột chênh lệch (dễ đọc từ xa cho chủ tiệm) */}
+        <span className="text-base sm:text-lg md:text-xl lg:text-2xl font-black font-mono tracking-tight text-neutral-950 leading-none">
+          {data.priceFormatted}$
+        </span>
+
+        {/* Real-time change */}
+        <span className={`font-mono font-black text-xs sm:text-sm md:text-base leading-none whitespace-nowrap px-1.5 sm:px-2.5 py-0.5 rounded-md flex items-center gap-0.5 ${
+          isUp ? 'text-emerald-800 bg-emerald-100/90 border border-emerald-300' : 'text-red-800 bg-red-100/90 border border-red-300'
+        }`}>
+          <span>{data.changeFormatted}</span>
+          <span className="text-[11px] sm:text-xs font-black">{changeIcon}</span>
         </span>
       </div>
     );

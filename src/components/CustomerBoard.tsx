@@ -199,7 +199,7 @@ export const CustomerBoard: React.FC<CustomerBoardProps> = ({
     const col4Width = isSingle ? 'w-[12%]' : 'w-[14%]';
 
     return (
-      <div className="flex-1 flex flex-col h-full bg-white rounded-xl sm:rounded-2xl border border-neutral-300 shadow-xs overflow-hidden">
+      <div className="flex-1 flex flex-col h-full bg-white rounded-xl sm:rounded-2xl border border-neutral-300 shadow-xl ring-1 ring-amber-400/40 overflow-hidden">
         {/* Group header if any */}
         {columnTitle && (
           <div className="px-3 sm:px-4 py-1 bg-neutral-100 border-b border-neutral-200 text-xs sm:text-sm font-black text-neutral-800 uppercase tracking-wider flex items-center justify-between flex-shrink-0">
@@ -305,9 +305,30 @@ export const CustomerBoard: React.FC<CustomerBoardProps> = ({
     );
   };
 
+  const activeTheme = settings.tvTheme || 'tet';
+  const getThemeContainerBg = (tId: string) => {
+    switch (tId) {
+      case 'tet':
+        return 'bg-gradient-to-b from-[#2a0505] via-[#450a0a] to-[#200404] text-white';
+      case 'summer':
+        return 'bg-gradient-to-b from-[#082f49] via-[#0c4a6e] to-[#042136] text-white';
+      case 'autumn':
+        return 'bg-gradient-to-b from-[#3b1906] via-[#572407] to-[#260f03] text-white';
+      case 'winter':
+        return 'bg-gradient-to-b from-[#09182a] via-[#112239] to-[#060e1a] text-white';
+      case 'spring':
+        return 'bg-gradient-to-b from-[#063020] via-[#094830] to-[#042015] text-white';
+      case 'luxury':
+        return 'bg-gradient-to-b from-[#141416] via-[#1f1f23] to-[#0a0a0c] text-white';
+      case 'none':
+      default:
+        return 'bg-[#F8F9FA] text-neutral-900';
+    }
+  };
+
   return (
     <div 
-      className={`fixed inset-0 z-50 w-full h-[100dvh] max-h-[100dvh] flex flex-col justify-between select-none overflow-hidden bg-[#F8F9FA] text-neutral-900 ${
+      className={`fixed inset-0 z-50 w-full h-[100dvh] max-h-[100dvh] flex flex-col justify-between select-none overflow-hidden ${getThemeContainerBg(activeTheme)} ${
         isTvSafeMargin ? 'p-1 sm:p-2 md:p-2.5' : 'p-0'
       }`}
       style={currentTvScale !== 100 ? {
@@ -344,21 +365,21 @@ export const CustomerBoard: React.FC<CustomerBoardProps> = ({
         </button>
       </div>
 
-      {/* 1. TOP MASTER HEADER: Tên Tiệm Vàng, Slogan ở giữa & Nút Quản Trị Răng Cưa Tối Giản */}
+      {/* 1. TOP MASTER HEADER: Tên Tiệm Vàng (Trái - Luôn hiển thị đầy đủ 100%), Slogan Nổi Bật (Chính Giữa) & Công Cụ (Phải) */}
       <header className="w-full bg-white border-b-2 border-amber-300/80 px-2 sm:px-4 md:px-5 py-1.5 sm:py-2 shadow-xs flex-shrink-0 relative z-40">
-        <div className="w-full flex items-center justify-between gap-2 sm:gap-4">
+        <div className="w-full flex items-center justify-between gap-2 sm:gap-4 min-h-[44px] sm:min-h-[48px]">
           
-          {/* Left: Brand Crest & Store Name (flex-shrink-0 BẢO ĐẢM 100% KHÔNG BAO GIỜ BỊ CHE HOẶC BỊ CO ÉP) */}
-          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 z-10">
+          {/* Left: Brand Crest & Store Name (Ưu tiên hiển thị trọn vẹn, không bao giờ bị cắt xén hay che khuất) */}
+          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 min-w-0">
             <div className="w-9 h-9 sm:w-11 sm:h-11 md:w-12 md:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br from-amber-400 via-yellow-400 to-amber-600 p-0.5 shadow-md flex-shrink-0">
               <div className="w-full h-full bg-red-900 rounded-[10px] sm:rounded-[12px] flex items-center justify-center text-amber-300 font-serif font-black text-sm sm:text-lg md:text-xl tracking-wider shadow-inner">
                 {getInitials(storeName)}
               </div>
             </div>
 
-            <div className="flex flex-col justify-center">
-              {/* Dòng 1: Tên Công Ty / Tiệm Vàng to đẹp, hiển thị trọn vẹn 100% không bao giờ bị cắt chữ */}
-              <div className="flex items-center gap-2">
+            <div className="flex flex-col justify-center min-w-0">
+              {/* Dòng 1: Tên Công Ty / Tiệm Vàng to đẹp, hiển thị trọn vẹn 100% không bị che */}
+              <div className="flex items-center gap-1.5 min-w-0">
                 <h1 className={`${getStoreNameFontSize(storeName)} font-black font-serif uppercase tracking-wide text-red-800 leading-tight whitespace-nowrap drop-shadow-2xs`}>
                   {storeName}
                 </h1>
@@ -371,13 +392,13 @@ export const CustomerBoard: React.FC<CustomerBoardProps> = ({
               </div>
               
               {/* Dòng 2: Địa chỉ, Số hotline */}
-              <div className="flex items-center gap-2 text-[11px] sm:text-xs text-neutral-700 font-bold mt-0.5 whitespace-nowrap">
-                <span className="flex items-center gap-1 text-neutral-800 whitespace-nowrap flex-shrink-0">
+              <div className="flex items-center gap-2 text-[10px] sm:text-xs text-neutral-700 font-bold mt-0.5 whitespace-nowrap">
+                <span className="flex items-center gap-1 text-neutral-800">
                   <MapPin className="w-3 h-3 text-red-700 flex-shrink-0" />
                   <span>{storeAddress}</span>
                 </span>
                 <span className="text-neutral-400 hidden sm:inline flex-shrink-0">•</span>
-                <span className="flex items-center gap-1 text-red-800 whitespace-nowrap flex-shrink-0">
+                <span className="flex items-center gap-1 text-red-800 whitespace-nowrap flex-shrink-0 hidden md:inline-flex">
                   <Phone className="w-3 h-3 text-red-700 flex-shrink-0" />
                   <span>Hotline: {storePhone}</span>
                 </span>
@@ -385,26 +406,19 @@ export const CustomerBoard: React.FC<CustomerBoardProps> = ({
             </div>
           </div>
 
-          {/* Center: Bảng khẩu hiệu Slogan (Tự co giãn hoặc ẩn khi màn hình hẹp để ưu tiên tên tiệm và giá vàng) */}
-          <div className="hidden xl:flex items-center justify-center px-1 lg:px-2 flex-1 min-w-0">
-            <div className="inline-flex items-center gap-2 px-3 sm:px-3.5 py-1 sm:py-1.5 rounded-xl bg-gradient-to-r from-red-950 via-[#B91C1C] to-red-950 text-amber-300 border border-amber-400 shadow-md flex-shrink truncate">
-              {currentTheme.id !== 'none' && <span className="text-amber-400 font-bold text-xs">{currentTheme.icon}</span>}
-              <span className="font-serif font-black text-xs sm:text-sm uppercase tracking-widest text-amber-200 drop-shadow-sm whitespace-nowrap truncate">
-                {settings.slogan || currentTheme.sloganTag}
+          {/* Center: BẢNG KHẨU HIỆU SLOGAN NỔI BẬT CHÍNH GIỮA (Nằm trong luồng Flex, căn giữa không gian, KHÔNG BAO GIỜ đè lên tên hiệu vàng) */}
+          <div className="flex-1 flex items-center justify-center px-2 sm:px-3 min-w-0">
+            <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 md:px-5 py-1 sm:py-1.5 rounded-xl sm:rounded-2xl bg-gradient-to-r from-red-950 via-[#991B1B] to-red-950 text-amber-300 border-2 border-amber-400 shadow-md ring-2 ring-amber-400/25 flex-shrink-0 transition-transform duration-300 hover:scale-105">
+              <span className="text-amber-300 font-black text-xs sm:text-sm animate-pulse flex-shrink-0">✨</span>
+              <span className="font-serif font-black text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl uppercase tracking-widest text-amber-200 drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)] whitespace-nowrap">
+                {settings.slogan || "CHỮ TÍN QUÝ HƠN VÀNG"}
               </span>
-              {currentTheme.id !== 'none' && <span className="text-amber-400 font-bold text-xs">{currentTheme.icon}</span>}
+              <span className="text-amber-300 font-black text-xs sm:text-sm animate-pulse flex-shrink-0">✨</span>
             </div>
           </div>
 
-          {/* Right: Giá Vàng Thế Giới Realtime (Investing.com), Đồng Hồ, TV Zoom & Cài Đặt */}
-          <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0 ml-auto">
-            {/* Real-time World Gold Price Ticker (Chỉ gồm số to rõ và tăng giảm, cực gọn gàng) */}
-            {settings.showWorldGoldPrice !== false && (
-              <div className="flex-shrink-0">
-                <WorldGoldTicker variant="header" />
-              </div>
-            )}
-
+          {/* Right: Đồng Hồ, TV Zoom & Nút Cài Đặt Quản Trị */}
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0 ml-auto z-10">
             {/* Live Clock */}
             <div className="bg-neutral-100 border border-neutral-200 rounded-lg sm:rounded-xl px-2 sm:px-3 py-1 text-right">
               <div className="text-xs sm:text-sm md:text-base font-black text-neutral-900 tracking-tight font-mono leading-none">
@@ -490,27 +504,36 @@ export const CustomerBoard: React.FC<CustomerBoardProps> = ({
         )}
       </main>
 
-      {/* 3. RUNNING MARQUEE TICKER: Đầy đủ địa chỉ và số điện thoại tiệm */}
-      <footer className="w-full bg-white border-t border-neutral-200/90 py-1.5 px-3 sm:px-4 flex items-center gap-2.5 shadow-xs flex-shrink-0 z-20">
-        <div className="flex-shrink-0 px-2.5 py-0.5 rounded-md bg-red-800 text-white font-bold text-xs uppercase tracking-wider flex items-center gap-1 shadow-xs">
-          <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-          <span>THÔNG BÁO</span>
-        </div>
+      {/* 3. RUNNING MARQUEE TICKER & GÓC GIÁ VÀNG QUỐC TẾ REALTIME (Ở 1 góc gọn gàng không chiếm diện tích) */}
+      <footer className="w-full bg-white border-t border-neutral-200/90 py-1 sm:py-1.5 px-2.5 sm:px-4 flex items-center justify-between gap-2 shadow-xs flex-shrink-0 z-20">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <div className="flex-shrink-0 px-2 sm:px-2.5 py-0.5 rounded-md bg-red-800 text-white font-bold text-xs uppercase tracking-wider flex items-center gap-1 shadow-xs">
+            <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+            <span>THÔNG BÁO</span>
+          </div>
 
-        <div className="overflow-hidden whitespace-nowrap w-full">
-          <div className="inline-block animate-marquee text-xs sm:text-sm font-semibold text-neutral-800 tracking-wide">
-            {(settings.marqueeNotice && settings.marqueeNotice.trim())
-              ? settings.marqueeNotice
-              : `${storeName} KÍNH CHÀO QUÝ KHÁCH • ĐỊA CHỈ: ${storeAddress} • ĐIỆN THOẠI: ${storePhone} • BẢNG GIÁ ĐỒNG BỘ TRỰC TIẾP THEO THỜI GIAN THỰC TỪ SJC, PNJ, DOJI, AAA • CAM KẾT ĐÚNG TUỔI VÀNG 100%, ĐỦ TRỌNG LƯỢNG, BẢO HÀNH LÀM SÁNG TRỌN ĐỜI • THU MUA VÀ THU ĐỔI VÀNG CŨ GIÁ TỐT NHẤT.`
-            }
-            <span className="mx-6 text-amber-500">★ ★ ★</span>
-            <span>Hotline: {storePhone}</span>
-            <span className="mx-6 text-amber-500">★ ★ ★</span>
-            <span>Địa chỉ: {storeAddress}</span>
-            <span className="mx-6 text-amber-500">★ ★ ★</span>
-            <span>Cập nhật: {settings.dataSourceName || 'SJC, PNJ, DOJI'} lúc {settings.lastSyncedAt || 'vừa xong'}</span>
+          <div className="overflow-hidden whitespace-nowrap flex-1 min-w-0">
+            <div className="inline-block animate-marquee text-xs sm:text-sm font-semibold text-neutral-800 tracking-wide">
+              {(settings.marqueeNotice && settings.marqueeNotice.trim())
+                ? settings.marqueeNotice
+                : `${storeName} KÍNH CHÀO QUÝ KHÁCH • ĐỊA CHỈ: ${storeAddress} • ĐIỆN THOẠI: ${storePhone} • BẢNG GIÁ ĐỒNG BỘ TRỰC TIẾP THEO THỜI GIAN THỰC TỪ SJC, PNJ, DOJI, AAA • CAM KẾT ĐÚNG TUỔI VÀNG 100%, ĐỦ TRỌNG LƯỢNG, BẢO HÀNH LÀM SÁNG TRỌN ĐỜI • THU MUA VÀ THU ĐỔI VÀNG CŨ GIÁ TỐT NHẤT.`
+              }
+              <span className="mx-6 text-amber-500">★ ★ ★</span>
+              <span>Hotline: {storePhone}</span>
+              <span className="mx-6 text-amber-500">★ ★ ★</span>
+              <span>Địa chỉ: {storeAddress}</span>
+              <span className="mx-6 text-amber-500">★ ★ ★</span>
+              <span>Cập nhật: {settings.dataSourceName || 'SJC, PNJ, DOJI'} lúc {settings.lastSyncedAt || 'vừa xong'}</span>
+            </div>
           </div>
         </div>
+
+        {/* Góc Hiển Thị Giá Vàng Quốc Tế Nhảy Thời Gian Thực (XAU/USD - Investing.com) */}
+        {settings.showWorldGoldPrice !== false && (
+          <div className="flex-shrink-0 border-l border-neutral-200 pl-2 sm:pl-2.5 ml-1">
+            <WorldGoldTicker variant="corner" />
+          </div>
+        )}
       </footer>
 
     </div>

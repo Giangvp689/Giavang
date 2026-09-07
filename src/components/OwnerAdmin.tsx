@@ -8,6 +8,7 @@ import {
   EyeOff, 
   Lock, 
   CheckCircle2, 
+  Check,
   Store, 
   Layers, 
   ArrowRight,
@@ -26,9 +27,10 @@ import {
   Radio,
   Globe
 } from 'lucide-react';
-import { GoldItem, StoreSettings, UnitType } from '../types';
+import { GoldItem, StoreSettings, UnitType, TvThemeId } from '../types';
 import { calculateStorePrices, formatVnd, convertPriceByUnit } from '../utils/goldMath';
 import { WorldGoldTicker } from './WorldGoldTicker';
+import { TV_THEMES, getThemeById } from '../data/themesData';
 
 interface OwnerAdminProps {
   items: GoldItem[];
@@ -984,6 +986,69 @@ export const OwnerAdmin: React.FC<OwnerAdminProps> = ({
                 {/* Live Preview of World Gold Ticker */}
                 <div className="pt-2">
                   <WorldGoldTicker variant="card" />
+                </div>
+              </div>
+
+              {/* Seasonal TV Themes Setting (7 Themes) */}
+              <div className="bg-neutral-50 border border-neutral-200 rounded-2xl p-4 space-y-3 sm:col-span-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-black text-neutral-800 uppercase tracking-wide flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-amber-600" />
+                    Giao Diện Theo Mùa & Không Khí Tiệm Vàng (7 Lựa Chọn)
+                  </label>
+                  <span className="text-xs font-bold text-neutral-500">
+                    Hiện tại: <strong className="text-red-700">{getThemeById(localSettings.tvTheme || 'tet').name}</strong>
+                  </span>
+                </div>
+                <p className="text-xs text-neutral-600">
+                  Mỗi mùa mang một nét đặc trưng riêng biệt, sang trọng và thu hút khách: Tết tiền vàng rơi & liễn câu đối đỏ vàng; Mùa hè mát ánh nắng chiếu; Mùa thu gió heo may lá vàng rơi; Mùa đông tuyết lạnh đa tầng; Hoàng kim mưa bụi vàng 24K; hoặc để nguyên bảng tĩnh.
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 pt-1">
+                  {TV_THEMES.map((theme) => {
+                    const isSelected = (localSettings.tvTheme || 'tet') === theme.id;
+                    return (
+                      <div
+                        key={theme.id}
+                        onClick={() => setLocalSettings(prev => ({ 
+                          ...prev, 
+                          tvTheme: theme.id as TvThemeId,
+                          slogan: theme.id !== 'none' ? (prev.slogan || theme.sloganTag) : prev.slogan
+                        }))}
+                        className={`p-3 rounded-xl border-2 cursor-pointer transition-all flex flex-col justify-between ${
+                          isSelected
+                            ? 'border-red-600 bg-red-50/70 shadow-sm ring-2 ring-red-400/30'
+                            : 'border-neutral-200 bg-white hover:border-amber-400 hover:bg-amber-50/20'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-1.5">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xl p-1 rounded-lg bg-neutral-100 border border-neutral-200 shadow-2xs">
+                              {theme.icon}
+                            </span>
+                            <div>
+                              <div className="text-xs font-black text-neutral-900 leading-tight">
+                                {theme.name}
+                              </div>
+                              <div className="text-[10px] font-bold text-neutral-500">
+                                {theme.seasonName}
+                              </div>
+                            </div>
+                          </div>
+                          {isSelected && (
+                            <span className="px-1.5 py-0.5 rounded-md bg-red-800 text-white text-[9px] font-black flex items-center gap-0.5">
+                              <Check className="w-2.5 h-2.5 stroke-[3]" />
+                              DÙNG
+                            </span>
+                          )}
+                        </div>
+
+                        <p className="text-[11px] text-neutral-600 mt-2 line-clamp-2 leading-tight">
+                          {theme.description}
+                        </p>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
