@@ -216,39 +216,31 @@ export const CustomerBoard: React.FC<CustomerBoardProps> = ({
       ? (isSingle ? 'py-2 sm:py-3 md:py-3.5' : 'py-1.5 sm:py-2 md:py-2.5')
       : 'py-1.5 sm:py-2';
 
-    // Adaptive item typography & badges
+    // Adaptive item typography & badges - elegant, sharp, luxurious without being oversized
     const itemNameClass = isFewItems
       ? (isSingle 
-          ? (totalCount <= 4 
-              ? 'text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-[40px] 2xl:text-[46px] font-black text-neutral-950 tracking-tight leading-tight'
-              : 'text-lg sm:text-2xl md:text-3xl lg:text-4xl xl:text-[36px] 2xl:text-[42px] font-black text-neutral-950 tracking-tight leading-tight')
-          : (totalCount <= 3 
-              ? 'text-base sm:text-xl md:text-2xl lg:text-3xl xl:text-[30px] font-black text-neutral-950 tracking-tight leading-tight'
-              : 'text-sm sm:text-lg md:text-xl lg:text-2xl xl:text-[26px] font-black text-neutral-950 tracking-tight leading-tight'))
-      : 'text-xs sm:text-sm md:text-base lg:text-base xl:text-lg font-black text-neutral-950 truncate leading-tight';
+          ? 'text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl 2xl:text-[26px] font-extrabold text-neutral-900 tracking-tight leading-tight'
+          : 'text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl font-extrabold text-neutral-900 tracking-tight leading-tight')
+      : 'text-xs sm:text-sm md:text-base lg:text-base xl:text-lg font-bold text-neutral-900 truncate leading-tight';
 
     const priceClass = isFewItems
       ? (isSingle 
-          ? (totalCount <= 4
-              ? 'text-2xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-[66px] 2xl:text-[76px] font-black tracking-tight font-sans tabular-nums leading-none'
-              : 'text-2xl sm:text-3xl md:text-5xl lg:text-6xl xl:text-[60px] 2xl:text-[68px] font-black tracking-tight font-sans tabular-nums leading-none')
-          : (totalCount <= 3 
-              ? 'text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-[46px] font-black tracking-tight font-sans tabular-nums leading-none'
-              : 'text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-[38px] font-black tracking-tight font-sans tabular-nums leading-none'))
+          ? 'text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl 2xl:text-[54px] font-black tracking-tight font-sans tabular-nums leading-none'
+          : 'text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl font-black tracking-tight font-sans tabular-nums leading-none')
       : (isSingle 
           ? 'text-lg sm:text-xl lg:text-2xl font-black tracking-tight font-sans tabular-nums leading-none'
           : 'text-base sm:text-lg lg:text-xl xl:text-2xl font-black tracking-tight font-sans tabular-nums leading-none');
 
     const badgeClass = isFewItems
-      ? (isSingle ? 'text-xs sm:text-sm md:text-base font-black px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg shadow-2xs' : 'text-[10px] sm:text-xs font-black px-1.5 py-0.5 rounded')
-      : 'text-[10px] sm:text-xs font-black px-1.5 py-0.5 rounded';
+      ? (isSingle ? 'text-[11px] sm:text-xs md:text-sm font-bold px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md shadow-2xs' : 'text-[10px] sm:text-xs font-bold px-1.5 py-0.5 rounded')
+      : 'text-[10px] sm:text-xs font-bold px-1.5 py-0.5 rounded';
 
     const trendTextClass = isFewItems
-      ? (isSingle ? 'text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl font-black' : 'text-xs sm:text-sm md:text-base font-black')
-      : 'text-xs sm:text-sm lg:text-base font-black';
+      ? (isSingle ? 'text-xs sm:text-sm md:text-base lg:text-lg font-bold' : 'text-xs sm:text-sm md:text-base font-bold')
+      : 'text-xs sm:text-sm lg:text-base font-bold';
 
     const trendIconClass = isFewItems
-      ? (isSingle ? 'w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 flex-shrink-0' : 'w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0')
+      ? (isSingle ? 'w-4 h-4 sm:w-4.5 sm:h-4.5 md:w-5 md:h-5 flex-shrink-0' : 'w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0')
       : 'w-3.5 h-3.5 flex-shrink-0';
 
     return (
@@ -299,27 +291,17 @@ export const CustomerBoard: React.FC<CustomerBoardProps> = ({
                 key={item.id}
                 className="flex items-center flex-1 min-h-0 bg-white hover:bg-neutral-50/80 transition-colors overflow-hidden"
               >
-                {/* Col 1: LOẠI VÀNG (Chữ to, rõ nét, sang trọng) */}
+                {/* Col 1: LOẠI VÀNG (Chữ vừa vặn, rõ nét, sang trọng) */}
                 <div className={`${col1Width} px-2.5 sm:px-4 md:px-5 py-1 sm:py-2 flex items-center gap-2 sm:gap-3.5 min-w-0 bg-white overflow-hidden`}>
                   <span className={`flex-shrink-0 bg-amber-100 text-amber-950 border border-amber-300 ${badgeClass}`}>
                     {item.brand}
                   </span>
-                  <div className="flex flex-col min-w-0 justify-center">
-                    <span 
-                      className={itemNameClass}
-                      title={item.cleanName}
-                    >
-                      {item.cleanName}
-                    </span>
-                    {/* Hiển thị thêm thông tin tuổi vàng / hàm lượng khi bảng có ít loại vàng để lấp đầy không gian tinh tế */}
-                    {isFewItems && isSingle && (item.purity || item.note) && (
-                      <div className="text-[11px] sm:text-xs md:text-sm xl:text-base font-semibold text-neutral-500 mt-0.5 truncate">
-                        {item.purity ? `Tuổi vàng: ${item.purity}` : ''}
-                        {item.purity && item.note ? ' • ' : ''}
-                        {item.note || ''}
-                      </div>
-                    )}
-                  </div>
+                  <span 
+                    className={itemNameClass}
+                    title={item.cleanName}
+                  >
+                    {item.cleanName}
+                  </span>
                 </div>
 
                 {/* Col 2: MUA VÀO (Chữ xanh dương hoàng gia, số to nét căng) */}
