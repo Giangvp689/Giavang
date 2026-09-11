@@ -9,6 +9,7 @@ export type PriceTrend = 'up' | 'down' | 'equal';
 export interface GoldItem {
   id: string;
   name: string;
+  cleanName?: string;
   purity: string; // e.g. "99.99%", "75.00%", "58.50%"
   brand: GoldBrand;
   category: GoldCategory;

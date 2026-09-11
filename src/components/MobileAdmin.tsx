@@ -36,7 +36,7 @@ import {
   AlertTriangle,
   Palette
 } from 'lucide-react';
-import { GoldItem, StoreSettings, UnitType, GoldBrand, GoldCategory, TvThemeId } from '../types';
+import { GoldItem, StoreSettings, UnitType, GoldBrand, GoldCategory, TvThemeId, PriceTrend } from '../types';
 import { calculateStorePrices, convertPriceByUnit } from '../utils/goldMath';
 import { GoldCalculator } from './GoldCalculator';
 import { TV_THEMES, getThemeById } from '../data/themesData';
@@ -185,6 +185,7 @@ export const MobileAdmin: React.FC<MobileAdminProps> = ({
   const [editCategory, setEditCategory] = useState<GoldCategory>('jewelry');
   const [editBuyThousands, setEditBuyThousands] = useState<string>('');
   const [editSellThousands, setEditSellThousands] = useState<string>('');
+  const [editPrevSellThousands, setEditPrevSellThousands] = useState<string>('');
   const [editVisible, setEditVisible] = useState<boolean>(true);
 
   // Delete confirmation
@@ -238,14 +239,15 @@ export const MobileAdmin: React.FC<MobileAdminProps> = ({
     if (e) e.preventDefault();
     if (!newItemName.trim()) return;
 
-    const buyThousands = parseFloat(newItemBuyThousands.replace(/[^0-9]/g, '')) || 14000;
-    const sellThousands = parseFloat(newItemSellThousands.replace(/[^0-9]/g, '')) || 14500;
+    const buyThousands = parseFloat(newItemBuyThousands.replace(/[^0-9]/g, '')) || 14350;
+    const sellThousands = parseFloat(newItemSellThousands.replace(/[^0-9]/g, '')) || 14850;
     const vndBuyPerLuong = buyThousands * 1000 * 10;
     const vndSellPerLuong = sellThousands * 1000 * 10;
 
     const newItem: GoldItem = {
       id: `custom_${Date.now()}`,
       name: newItemName.trim(),
+      cleanName: newItemName.trim(),
       brand: newItemBrand,
       purity: newItemPurity.trim() || '99.99%',
       category: newItemCategory,
@@ -253,6 +255,8 @@ export const MobileAdmin: React.FC<MobileAdminProps> = ({
       apiSell: vndSellPerLuong,
       baseBuy: vndBuyPerLuong,
       baseSell: vndSellPerLuong,
+      prevDayBuy: vndBuyPerLuong,
+      prevDaySell: vndSellPerLuong,
       trend: 'equal',
       changeAmount: 0,
       useCustomPrice: true,
@@ -263,11 +267,15 @@ export const MobileAdmin: React.FC<MobileAdminProps> = ({
       updatedAt: new Date().toISOString()
     };
 
-    const updated = [newItem, ...localItems];
+    const updated = [...localItems, newItem];
     setLocalItems(updated);
     onUpdateItems(updated);
+    if (onSaveAll) {
+      onSaveAll(updated, localSettings);
+    }
     setShowAddModal(false);
     setNewItemName('');
+    setSavedNotificationText(`Đã thêm loại vàng "${newItem.name}" thành công!`);
     setSavedNotification(true);
     setTimeout(() => setSavedNotification(false), 3000);
   };
@@ -277,6 +285,10 @@ export const MobileAdmin: React.FC<MobileAdminProps> = ({
     const { finalBuy, finalSell } = calculateStorePrices(item, localSettings);
     const buyInThousands = Math.round(convertPriceByUnit(finalBuy, 'chi') / 1000);
     const sellInThousands = Math.round(convertPriceByUnit(finalSell, 'chi') / 1000);
+    const prevRefSell = (item.prevDaySell !== undefined && item.prevDaySell !== null && item.prevDaySell > 0)
+      ? item.prevDaySell
+      : finalSell;
+    const prevSellInThousands = Math.round(convertPriceByUnit(prevRefSell, 'chi') / 1000);
 
     setEditingItem(item);
     setEditName(item.name);
@@ -285,6 +297,7 @@ export const MobileAdmin: React.FC<MobileAdminProps> = ({
     setEditCategory(item.category);
     setEditBuyThousands(buyInThousands.toString());
     setEditSellThousands(sellInThousands.toString());
+    setEditPrevSellThousands(prevSellInThousands.toString());
     setEditVisible(item.visible);
   };
 
@@ -295,19 +308,32 @@ export const MobileAdmin: React.FC<MobileAdminProps> = ({
 
     const buyThousands = parseFloat(editBuyThousands.replace(/[^0-9]/g, '')) || 14000;
     const sellThousands = parseFloat(editSellThousands.replace(/[^0-9]/g, '')) || 14500;
+    const prevSellThousands = parseFloat(editPrevSellThousands.replace(/[^0-9]/g, '')) || sellThousands;
+
     const vndBuyPerLuong = buyThousands * 1000 * 10;
     const vndSellPerLuong = sellThousands * 1000 * 10;
+    const vndPrevSellPerLuong = prevSellThousands * 1000 * 10;
+
+    const changeAmount = vndSellPerLuong - vndPrevSellPerLuong;
+    const trend: PriceTrend = changeAmount > 0 ? 'up' : changeAmount < 0 ? 'down' : 'equal';
 
     const updated = localItems.map(it => {
       if (it.id !== editingItem.id) return it;
       return {
         ...it,
         name: editName.trim(),
+        cleanName: editName.trim(),
         brand: editBrand,
         purity: editPurity.trim() || it.purity,
         category: editCategory,
         customBuy: vndBuyPerLuong,
         customSell: vndSellPerLuong,
+        baseBuy: vndBuyPerLuong,
+        baseSell: vndSellPerLuong,
+        prevDaySell: vndPrevSellPerLuong,
+        prevDayBuy: vndBuyPerLuong,
+        changeAmount,
+        trend,
         useCustomPrice: true,
         visible: editVisible,
         updatedAt: new Date().toISOString()
@@ -316,7 +342,11 @@ export const MobileAdmin: React.FC<MobileAdminProps> = ({
 
     setLocalItems(updated);
     onUpdateItems(updated);
+    if (onSaveAll) {
+      onSaveAll(updated, localSettings);
+    }
     setEditingItem(null);
+    setSavedNotificationText(`Đã cập nhật loại vàng "${editName.trim()}" thành công!`);
     setSavedNotification(true);
     setTimeout(() => setSavedNotification(false), 3000);
   };
@@ -340,20 +370,6 @@ export const MobileAdmin: React.FC<MobileAdminProps> = ({
     setTimeout(() => setSavedNotification(false), 3000);
   };
 
-  // Reset to the 5 core standard store items
-  const handleResetToFiveStandardItems = () => {
-    if (window.confirm('Bạn có muốn khôi phục lại 5 loại vàng chuẩn của tiệm không? Bảng giá sẽ hiển thị: Nhẫn tròn trơn 999.9, Vàng miếng 999.9, Vàng 24K, Vàng tây 18K, Vàng tây 14K.')) {
-      setLocalItems(INITIAL_GOLD_ITEMS);
-      onUpdateItems(INITIAL_GOLD_ITEMS);
-      if (onSaveAll) {
-        onSaveAll(INITIAL_GOLD_ITEMS, localSettings);
-      }
-      setSavedNotificationText('Đã khôi phục 5 loại vàng chuẩn của tiệm thành công!');
-      setSavedNotification(true);
-      setTimeout(() => setSavedNotification(false), 3000);
-    }
-  };
-
   // Move item up or down for custom TV ordering
   const handleMoveItem = (itemId: string, direction: 'up' | 'down') => {
     const index = localItems.findIndex(it => it.id === itemId);
@@ -370,6 +386,9 @@ export const MobileAdmin: React.FC<MobileAdminProps> = ({
     const reordered = newItems.map((item, idx) => ({ ...item, order: idx + 1 }));
     setLocalItems(reordered);
     onUpdateItems(reordered);
+    if (onSaveAll) {
+      onSaveAll(reordered, localSettings);
+    }
   };
 
   // Quick adjust price by step (in VND/lượng, 100k/chỉ = 1.000.000 đ/lượng)
@@ -381,20 +400,37 @@ export const MobileAdmin: React.FC<MobileAdminProps> = ({
         if (item.id !== itemId) return item;
 
         const { finalBuy, finalSell } = calculateStorePrices(item, localSettings);
-        const currentBuy = item.customBuy ?? finalBuy;
-        const currentSell = item.customSell ?? finalSell;
+        const currentBuy = (item.customBuy !== null && item.customBuy !== undefined && item.customBuy > 0) ? item.customBuy : finalBuy;
+        const currentSell = (item.customSell !== null && item.customSell !== undefined && item.customSell > 0) ? item.customSell : finalSell;
 
         const newBuy = field === 'customBuy' ? Math.max(1000000, currentBuy + deltaVndPerLuong) : currentBuy;
         const newSell = field === 'customSell' ? Math.max(1000000, currentSell + deltaVndPerLuong) : currentSell;
+
+        // Baseline previous price reference (Giá cuối cùng trước đó / Giá phiên trước)
+        const prevRefSell = (item.prevDaySell !== undefined && item.prevDaySell !== null && item.prevDaySell > 0)
+          ? item.prevDaySell
+          : currentSell;
+
+        const changeAmount = newSell - prevRefSell;
+        const trend: PriceTrend = changeAmount > 0 ? 'up' : changeAmount < 0 ? 'down' : 'equal';
 
         return {
           ...item,
           customBuy: newBuy,
           customSell: newSell,
-          useCustomPrice: true
+          baseBuy: newBuy,
+          baseSell: newSell,
+          prevDaySell: prevRefSell,
+          changeAmount,
+          trend,
+          useCustomPrice: true,
+          updatedAt: new Date().toISOString()
         };
       });
       onUpdateItems(updated);
+      if (onSaveAll) {
+        onSaveAll(updated, localSettings);
+      }
       return updated;
     });
   };
@@ -411,67 +447,82 @@ export const MobileAdmin: React.FC<MobileAdminProps> = ({
       const updated = prev.map(item => {
         if (item.id !== itemId) return item;
         const { finalBuy, finalSell } = calculateStorePrices(item, localSettings);
+        const currentBuy = (item.customBuy !== null && item.customBuy !== undefined && item.customBuy > 0) ? item.customBuy : finalBuy;
+        const currentSell = (item.customSell !== null && item.customSell !== undefined && item.customSell > 0) ? item.customSell : finalSell;
+
+        const newBuy = field === 'customBuy' ? vndPerLuong : currentBuy;
+        const newSell = field === 'customSell' ? vndPerLuong : currentSell;
+
+        const prevRefSell = (item.prevDaySell !== undefined && item.prevDaySell !== null && item.prevDaySell > 0)
+          ? item.prevDaySell
+          : currentSell;
+
+        const changeAmount = newSell - prevRefSell;
+        const trend: PriceTrend = changeAmount > 0 ? 'up' : changeAmount < 0 ? 'down' : 'equal';
+
         return {
           ...item,
-          customBuy: field === 'customBuy' ? vndPerLuong : (item.customBuy ?? finalBuy),
-          customSell: field === 'customSell' ? vndPerLuong : (item.customSell ?? finalSell),
-          useCustomPrice: true
+          customBuy: newBuy,
+          customSell: newSell,
+          baseBuy: newBuy,
+          baseSell: newSell,
+          prevDaySell: prevRefSell,
+          changeAmount,
+          trend,
+          useCustomPrice: true,
+          updatedAt: new Date().toISOString()
         };
       });
       onUpdateItems(updated);
+      if (onSaveAll) {
+        onSaveAll(updated, localSettings);
+      }
       return updated;
     });
   };
 
-  // Reset item to automatic market API price
-  const handleResetToAuto = (itemId: string) => {
+  // Set current active price as comparison baseline (Chốt làm mốc giá phiên trước)
+  const handleSetAsBaseline = (itemId: string) => {
     setLocalItems(prev => {
       const updated = prev.map(item => {
         if (item.id !== itemId) return item;
+        const { finalBuy, finalSell } = calculateStorePrices(item, localSettings);
         return {
           ...item,
-          customBuy: null,
-          customSell: null,
-          useCustomPrice: false
+          prevDayBuy: finalBuy,
+          prevDaySell: finalSell,
+          changeAmount: 0,
+          trend: 'equal' as PriceTrend,
+          updatedAt: new Date().toISOString()
         };
       });
       onUpdateItems(updated);
+      if (onSaveAll) {
+        onSaveAll(updated, localSettings);
+      }
+      const targetName = localItems.find(i => i.id === itemId)?.name || 'loại vàng';
+      setSavedNotificationText(`Đã chốt giá hiện tại của "${targetName}" làm mốc so sánh!`);
+      setSavedNotification(true);
+      setTimeout(() => setSavedNotification(false), 3000);
       return updated;
     });
-  };
-
-  // Reset ALL items to automatic market price & switch pricingMode to 'auto_market'
-  const handleResetAllToAuto = () => {
-    const updatedItems = localItems.map(item => ({
-      ...item,
-      customBuy: null,
-      customSell: null,
-      useCustomPrice: false
-    }));
-    const updatedSettings: StoreSettings = {
-      ...localSettings,
-      pricingMode: 'auto_market',
-      buyAmountDeltaPerChi: 0,
-      sellAmountDeltaPerChi: 0
-    };
-    setLocalItems(updatedItems);
-    setLocalSettings(updatedSettings);
-    onUpdateItems(updatedItems);
-    onUpdateSettings(updatedSettings);
-    onRefreshMarket();
-    setSavedNotification(true);
-    setTimeout(() => setSavedNotification(false), 3000);
   };
 
   // Toggle item visibility on TV
   const handleToggleVisibility = (itemId: string) => {
-    setLocalItems(prev => prev.map(item => {
+    const updated = localItems.map(item => {
       if (item.id !== itemId) return item;
       return {
         ...item,
-        visible: !item.visible
+        visible: !item.visible,
+        updatedAt: new Date().toISOString()
       };
-    }));
+    });
+    setLocalItems(updated);
+    onUpdateItems(updated);
+    if (onSaveAll) {
+      onSaveAll(updated, localSettings);
+    }
   };
 
   // Copy link helper
@@ -677,25 +728,15 @@ export const MobileAdmin: React.FC<MobileAdminProps> = ({
                 </div>
               </div>
 
-              {/* Nút hành động: Thêm loại vàng & Khôi phục 5 loại chuẩn */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {/* Nút hành động: Thêm loại vàng mới */}
+              <div>
                 <button
                   type="button"
                   onClick={() => setShowAddModal(true)}
-                  className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-red-800 via-red-700 to-red-800 hover:from-red-700 hover:to-red-600 text-amber-300 font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs cursor-pointer active:scale-98 transition-all border border-amber-400"
+                  className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-red-800 via-red-700 to-red-800 hover:from-red-700 hover:to-red-600 text-amber-300 font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs cursor-pointer active:scale-98 transition-all border border-amber-400"
                 >
                   <Plus className="w-4 h-4 text-amber-300 stroke-[3]" />
                   <span className="uppercase">Thêm Loại Vàng Mới</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleResetToFiveStandardItems}
-                  className="py-2.5 px-3 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-black text-xs flex items-center justify-center gap-1.5 border border-neutral-300 cursor-pointer active:scale-98 transition-all"
-                  title="Đặt lại danh sách về 5 loại vàng chuẩn truyền thống của tiệm"
-                >
-                  <RefreshCw className="w-3.5 h-3.5 text-neutral-600" />
-                  <span>Khôi Phục 5 Loại Chuẩn Của Tiệm</span>
                 </button>
               </div>
 
@@ -768,6 +809,12 @@ export const MobileAdmin: React.FC<MobileAdminProps> = ({
                 // Value in thousands per chỉ for display/input (vd: 14360)
                 const buyInThousands = Math.round(convertPriceByUnit(finalBuy, 'chi') / 1000);
                 const sellInThousands = Math.round(convertPriceByUnit(finalSell, 'chi') / 1000);
+
+                const prevRefSell = (item.prevDaySell !== undefined && item.prevDaySell !== null && item.prevDaySell > 0)
+                  ? item.prevDaySell
+                  : finalSell;
+                const prevSellInThousands = Math.round(convertPriceByUnit(prevRefSell, 'chi') / 1000);
+                const diffInThousands = sellInThousands - prevSellInThousands;
 
                 return (
                   <div 
@@ -965,34 +1012,36 @@ export const MobileAdmin: React.FC<MobileAdminProps> = ({
 
                     </div>
 
-                    {/* Trạng thái & nút đặt lại giá tự động & Giá thị trường đối chiếu */}
-                    <div className="flex flex-wrap items-center justify-between gap-1 text-[11px] pt-1 border-t border-neutral-100">
+                    {/* Hiển thị giá phiên trước & chênh lệch thực tế hôm nay */}
+                    <div className="flex flex-wrap items-center justify-between gap-1.5 text-[11px] pt-1.5 border-t border-neutral-100">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        {isCustom ? (
-                          <span className="inline-flex items-center gap-1 text-amber-800 font-bold bg-amber-100/80 px-2 py-0.5 rounded-md">
-                            <span className="w-1.5 h-1.5 rounded-full bg-amber-600" />
-                            <span>Giá tiệm sửa tay</span>
+                        <span className="text-[11px] text-neutral-600 font-medium">
+                          Giá trước: <strong className="text-neutral-900 font-mono">{prevSellInThousands.toLocaleString('vi-VN')}k/chỉ</strong>
+                        </span>
+
+                        {diffInThousands === 0 ? (
+                          <span className="inline-flex items-center gap-1 text-neutral-600 font-bold bg-neutral-100 px-2 py-0.5 rounded-md text-[10px]">
+                            <span>— Đứng giá (0đ)</span>
+                          </span>
+                        ) : diffInThousands > 0 ? (
+                          <span className="inline-flex items-center gap-1 text-emerald-800 font-bold bg-emerald-100/90 px-2 py-0.5 rounded-md text-[10px]">
+                            <span>▲ Tăng +{diffInThousands.toLocaleString('vi-VN')}k/chỉ</span>
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 text-emerald-800 font-bold bg-emerald-100/80 px-2 py-0.5 rounded-md">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
-                            <span>Tự động theo {item.brand}</span>
+                          <span className="inline-flex items-center gap-1 text-rose-800 font-bold bg-rose-100/90 px-2 py-0.5 rounded-md text-[10px]">
+                            <span>▼ Giảm {diffInThousands.toLocaleString('vi-VN')}k/chỉ</span>
                           </span>
                         )}
-                        <span className="text-[10px] text-neutral-500 font-mono">
-                          (Gốc: Mua {Math.round(convertPriceByUnit(item.apiBuy, 'chi') / 1000).toLocaleString('vi-VN')}k / Bán {Math.round(convertPriceByUnit(item.apiSell, 'chi') / 1000).toLocaleString('vi-VN')}k)
-                        </span>
                       </div>
 
-                      {isCustom && (
-                        <button
-                          type="button"
-                          onClick={() => handleResetToAuto(item.id)}
-                          className="px-2 py-0.5 rounded bg-red-100 hover:bg-red-200 text-red-800 text-[11px] font-bold cursor-pointer transition-colors"
-                        >
-                          ↺ Trả về giá tự động
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleSetAsBaseline(item.id)}
+                        className="px-2 py-1 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-[10px] font-bold cursor-pointer transition-colors border border-neutral-200 flex items-center gap-1"
+                        title="Chốt giá hiện tại làm mốc phiên trước cho loại vàng này"
+                      >
+                        <span>📌 Chốt mốc hôm nay</span>
+                      </button>
                     </div>
 
                   </div>
@@ -2166,6 +2215,51 @@ export const MobileAdmin: React.FC<MobileAdminProps> = ({
                     {editSellThousands ? `${parseFloat(editSellThousands).toLocaleString('vi-VN')} nghìn đ/chỉ` : '0 đ'}
                   </div>
                 </div>
+              </div>
+
+              {/* Mốc So Sánh: Giá Chốt Phiên Trước (Hôm qua) để tính chênh lệch */}
+              <div className="bg-amber-50/80 p-3 rounded-2xl border border-amber-300 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="block font-black text-amber-950 text-xs">
+                    Giá Bán Phiên Trước (Mốc tính chênh lệch):
+                  </label>
+                  <span className="text-[10px] text-amber-800 font-bold">nghìn/chỉ</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={editPrevSellThousands}
+                    onChange={(e) => setEditPrevSellThousands(e.target.value.replace(/[^0-9]/g, ''))}
+                    className="flex-1 px-2.5 py-1.5 rounded-xl bg-white border border-amber-300 text-base font-black text-amber-950 text-center font-mono focus:outline-hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setEditPrevSellThousands(editSellThousands)}
+                    className="px-2.5 py-1.5 rounded-xl bg-amber-200 hover:bg-amber-300 text-amber-950 text-[11px] font-bold whitespace-nowrap cursor-pointer transition-colors"
+                    title="Bằng giá bán hôm nay (chênh lệch = 0)"
+                  >
+                    Bằng giá hôm nay
+                  </button>
+                </div>
+                {/* Tính chênh lệch xem trước */}
+                {(() => {
+                  const curr = parseFloat(editSellThousands) || 0;
+                  const prev = parseFloat(editPrevSellThousands) || 0;
+                  const diff = curr - prev;
+                  return (
+                    <div className="text-[11px] font-bold flex items-center justify-between pt-1 text-neutral-700">
+                      <span>Chênh lệch hiển thị trên TV:</span>
+                      {diff === 0 ? (
+                        <span className="text-neutral-500 font-mono">— Đứng giá (0đ)</span>
+                      ) : diff > 0 ? (
+                        <span className="text-emerald-700 font-mono font-black">▲ Tăng +{diff.toLocaleString('vi-VN')}k/chỉ</span>
+                      ) : (
+                        <span className="text-rose-700 font-mono font-black">▼ Giảm {diff.toLocaleString('vi-VN')}k/chỉ</span>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Trạng thái hiển thị */}

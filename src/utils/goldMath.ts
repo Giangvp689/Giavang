@@ -49,7 +49,7 @@ export function applyRounding(pricePerLuong: number, rule?: 'round_up_step_5_10'
  * 1. Store Buy = API Buy * (1 + profitOnBuyPercent / 100)
  * 2. Store Sell = Store Buy * (1 + spreadPercent / 100)
  */
-export function calculateStorePrices(item: GoldItem, settings: StoreSettings): {
+export function calculateStorePrices(item: GoldItem, _settings?: StoreSettings): {
   finalBuy: number;
   finalSell: number;
   spread: number;
@@ -59,76 +59,38 @@ export function calculateStorePrices(item: GoldItem, settings: StoreSettings): {
   dailyChangeAmount: number;
   dailyChangePercent: number;
 } {
-  let finalBuy: number;
-  let finalSell: number;
-  let isCustom = false;
+  // Directly use the price set by the shop owner
+  const finalBuy = (item.customBuy !== null && item.customBuy !== undefined && item.customBuy > 0)
+    ? Math.round(item.customBuy)
+    : (item.baseBuy || item.apiBuy || 140000000);
 
-  // Fallback defaults to current market reality (143.5tr - 146.5tr)
-  const rawBuy = item.apiBuy || item.baseBuy || 143500000;
-  const rawSell = item.apiSell || item.baseSell || 146500000;
-  const pricingMode = settings.pricingMode || 'auto_market';
-
-  // 1. Khi loại vàng này được chỉnh sửa giá riêng (hoặc chế độ gõ giá thủ công)
-  if (item.useCustomPrice || pricingMode === 'custom_override') {
-    finalBuy = item.customBuy !== null && item.customBuy !== undefined && item.customBuy > 0 
-      ? Math.round(item.customBuy) 
-      : rawBuy;
-    finalSell = item.customSell !== null && item.customSell !== undefined && item.customSell > 0 
-      ? Math.round(item.customSell) 
-      : rawSell;
-    isCustom = true;
-  }
-  // 2. Chế độ TỰ ĐỘNG THỊ TRƯỜNG CHUẨN 100% (Giá SJC, PNJ, DOJI, AAA gốc không bị lệch)
-  else if (pricingMode === 'auto_market') {
-    finalBuy = rawBuy;
-    finalSell = rawSell;
-    isCustom = false;
-  }
-  // 3. Chế độ TỰ ĐỘNG + CHÊNH LỆCH TIỆM (Thị trường +/- tiền hoặc %)
-  else {
-    const calcType = settings.calculationType || 'amount_delta';
-
-    if (calcType === 'amount_delta') {
-      // Chế độ nhập tiền chênh lệch (Ví dụ: giá thị trường 16600 -> mua vào trừ 100 thành 16500, bán ra cộng 100 thành 16700)
-      // Đơn vị buyAmountDeltaPerChi: nghìn đồng/chỉ (100 nghìn/chỉ = 1.000.000 đ/lượng)
-      const buyDeltaPerLuong = (settings.buyAmountDeltaPerChi ?? 0) * 10000;
-      const sellDeltaPerLuong = (settings.sellAmountDeltaPerChi ?? 0) * 10000;
-
-      const unroundedBuy = Math.max(0, rawBuy - buyDeltaPerLuong);
-      finalBuy = applyRounding(unroundedBuy, settings.roundingRule);
-
-      const unroundedSell = rawSell + sellDeltaPerLuong;
-      finalSell = applyRounding(unroundedSell, settings.roundingRule);
-    } else {
-      // Chế độ tính theo %:
-      // Mua vào trừ % so với giá thị trường (để tiệm có lời khi thu mua)
-      const buyDiscountRate = settings.buyDiscountPercent ?? (settings.globalProfitOnBuyPercent ?? 0);
-      const unroundedBuy = rawBuy * (1 - buyDiscountRate / 100);
-      finalBuy = applyRounding(unroundedBuy, settings.roundingRule);
-
-      // Bán ra cộng % so với giá thị trường / giá mua (để tiệm có lãi khi bán)
-      const sellMarginRate = settings.sellMarginPercent ?? (settings.globalSpreadPercent ?? 0);
-      const unroundedSell = rawSell * (1 + sellMarginRate / 100);
-      finalSell = applyRounding(unroundedSell, settings.roundingRule);
-    }
-  }
+  const finalSell = (item.customSell !== null && item.customSell !== undefined && item.customSell > 0)
+    ? Math.round(item.customSell)
+    : (item.baseSell || item.apiSell || 145000000);
 
   const spread = Math.max(0, finalSell - finalBuy);
   const spreadPercent = finalBuy > 0 ? parseFloat(((spread / finalBuy) * 100).toFixed(2)) : 0;
-  const profitOnBuyAmount = finalBuy - rawBuy;
 
-  // Calculate daily change based on yesterday's reference price
-  const prevDaySell = item.prevDaySell || (item.apiSell ? item.apiSell - item.changeAmount : finalSell - 200000);
-  const dailyChangeAmount = finalSell - prevDaySell;
-  const dailyChangePercent = prevDaySell > 0 ? parseFloat(((dailyChangeAmount / prevDaySell) * 100).toFixed(2)) : 0;
+  // Chênh lệch giữa giá hôm nay chủ tiệm đặt và giá cuối cùng trước đó
+  let dailyChangeAmount = 0;
+  if (item.prevDaySell !== undefined && item.prevDaySell !== null && item.prevDaySell > 0) {
+    dailyChangeAmount = finalSell - item.prevDaySell;
+  } else if (item.changeAmount !== undefined && item.changeAmount !== null) {
+    dailyChangeAmount = item.changeAmount;
+  }
+
+  const prevRef = (item.prevDaySell && item.prevDaySell > 0) 
+    ? item.prevDaySell 
+    : (finalSell !== dailyChangeAmount ? finalSell - dailyChangeAmount : finalSell);
+  const dailyChangePercent = prevRef > 0 ? parseFloat(((dailyChangeAmount / prevRef) * 100).toFixed(2)) : 0;
 
   return {
     finalBuy,
     finalSell,
     spread,
     spreadPercent,
-    profitOnBuyAmount,
-    isCustom,
+    profitOnBuyAmount: 0,
+    isCustom: true,
     dailyChangeAmount,
     dailyChangePercent
   };

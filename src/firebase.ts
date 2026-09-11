@@ -141,12 +141,22 @@ export async function saveStoreConfigToFirebase(
 ): Promise<boolean> {
   try {
     const docRef = doc(db, 'store_configs', 'main');
+
+    const sanitizedItems = items.map(it => {
+      const clean = { ...it };
+      if (clean.prevDaySell === undefined) clean.prevDaySell = clean.customSell || clean.baseSell || clean.apiSell || 0;
+      if (clean.prevDayBuy === undefined) clean.prevDayBuy = clean.customBuy || clean.baseBuy || clean.apiBuy || 0;
+      if (clean.customBuy === undefined) clean.customBuy = clean.baseBuy || clean.apiBuy || 0;
+      if (clean.customSell === undefined) clean.customSell = clean.baseSell || clean.apiSell || 0;
+      return clean;
+    });
+
     const payload: FirebaseStoreData = {
-      items,
-      settings: {
+      items: JSON.parse(JSON.stringify(sanitizedItems)),
+      settings: JSON.parse(JSON.stringify({
         ...settings,
         lastSyncedAt: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' • ' + new Date().toLocaleDateString('vi-VN')
-      },
+      })),
       updatedAt: new Date().toISOString(),
       updatedDevice: deviceInfo
     };

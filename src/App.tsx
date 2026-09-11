@@ -14,8 +14,7 @@ import { INITIAL_GOLD_ITEMS, INITIAL_STORE_SETTINGS } from './data/defaultData';
 import { 
   subscribeToStoreConfig, 
   saveStoreConfigToFirebase, 
-  fetchStoreConfigFromFirebase,
-  subscribeToMarketRates 
+  fetchStoreConfigFromFirebase
 } from './firebase';
 import { getLiveMarketRates } from './utils/marketRatesService';
 
@@ -23,34 +22,12 @@ const LOCAL_STORAGE_ITEMS_KEY = 'tiem_vang_ducky_items_v1';
 const LOCAL_STORAGE_SETTINGS_KEY = 'tiem_vang_ducky_settings_v1';
 const LOCAL_STORAGE_AUTH_KEY = 'tiem_vang_admin_authenticated';
 
-// Helper to ensure inventory is 3-5 core tiệm items and purge legacy 14 external brand items
+// Helper to preserve store owner's items or fallback to initial defaults if empty
 function cleanAndFilterItems(rawItems: GoldItem[]): GoldItem[] {
   if (!Array.isArray(rawItems) || rawItems.length === 0) {
     return INITIAL_GOLD_ITEMS;
   }
-
-  // Check if list contains the old 14-item auto-market seed with external brands (SJC, DOJI, PNJ, AAA)
-  const hasOldExternalBrands = rawItems.some(i => 
-    i.brand === 'SJC' || i.brand === 'DOJI' || i.brand === 'PNJ' || i.brand === 'AAA' || i.id === 'sjc-1l'
-  );
-
-  // If the user already customized their list to 3-5 tiệm items (no external brands), leave it as-is!
-  if (!hasOldExternalBrands) {
-    return rawItems;
-  }
-
-  // If it still has external brands and more than 5 items:
-  // Extract any custom items the owner added (e.g., id starts with 'custom_' or brand is 'TIỆM')
-  const tiemOrCustomItems = rawItems.filter(i => 
-    i.brand === 'TIỆM' || i.id.startsWith('custom_') || i.id.startsWith('tiem-')
-  );
-
-  if (tiemOrCustomItems.length >= 3) {
-    return tiemOrCustomItems.slice(0, 5).map((it, idx) => ({ ...it, order: idx + 1, useCustomPrice: true }));
-  }
-
-  // Otherwise, use the 5 standard tiệm gold items from INITIAL_GOLD_ITEMS
-  return INITIAL_GOLD_ITEMS;
+  return rawItems;
 }
 
 // Determine initial tab from URL: ?mode=admin or /admin or #admin
@@ -193,62 +170,32 @@ export default function App() {
     }
   }, []);
 
-  // Fetch Public Gold Prices from live feeds (SJC, PNJ, DOJI, AAA)
+  // Fetch Public Gold Prices timestamp (does not overwrite owner's custom store prices)
   const fetchMarketRates = useCallback(async (showIndicator = true) => {
     if (showIndicator) setIsRefreshing(true);
     try {
       const data = await getLiveMarketRates();
-      if (data && data.rates && data.rates.length > 0) {
-        setItems(prevItems => {
-          const updated = prevItems.map(item => {
-            const match = data.rates.find(r => 
-              r.id === item.id || 
-              (r.brand === item.brand && r.name.toLowerCase() === item.name.toLowerCase())
-            );
-
-            if (match) {
-              return {
-                ...item,
-                apiBuy: match.buy,
-                apiSell: match.sell,
-                baseBuy: match.buy,
-                baseSell: match.sell,
-                prevDayBuy: match.prevDayBuy || (match.buy - (match.changeAmount || 0)),
-                prevDaySell: match.prevDaySell || (match.sell - (match.changeAmount || 0)),
-                trend: match.trend || item.trend,
-                changeAmount: match.changeAmount ?? item.changeAmount
-              };
-            }
-            return item;
-          });
-
-          latestItemsRef.current = updated;
-          const currentSettings = latestSettingsRef.current;
-          const newSettings: StoreSettings = {
-            ...currentSettings,
-            lastSyncedAt: data.timestamp || new Date().toLocaleTimeString('vi-VN'),
-            dataSourceName: data.source || currentSettings.dataSourceName
-          };
-
-          latestSettingsRef.current = newSettings;
-          setSettings(newSettings);
-          persistState(updated, newSettings);
-          return updated;
-        });
+      if (data && data.timestamp) {
+        const currentSettings = latestSettingsRef.current;
+        const newSettings: StoreSettings = {
+          ...currentSettings,
+          lastSyncedAt: data.timestamp || new Date().toLocaleTimeString('vi-VN')
+        };
+        latestSettingsRef.current = newSettings;
+        setSettings(newSettings);
       }
     } catch (err) {
-      console.warn('Could not fetch market rates, relying on active rates:', err);
+      console.warn('Could not fetch market rates:', err);
     } finally {
       if (showIndicator) {
         setTimeout(() => setIsRefreshing(false), 600);
       }
     }
-  }, [persistState]);
+  }, []);
 
   // Firebase Real-time Listener: Updates instantly when phone changes prices or settings!
   useEffect(() => {
     let unsubscribeStore: (() => void) | undefined;
-    let unsubscribeRates: (() => void) | undefined;
 
     // 1. Initial load from Firestore or seed if empty
     async function initFirebaseData() {
@@ -319,36 +266,8 @@ export default function App() {
       }
     );
 
-    // 3. Real-time subscription to market rates (Only if auto market mode is explicitly selected)
-    if (settings.pricingMode !== 'custom_override') {
-      unsubscribeRates = subscribeToMarketRates((ratesData) => {
-        if (ratesData && ratesData.rates && ratesData.rates.length > 0) {
-          setItems(prevItems => {
-            return prevItems.map(item => {
-              const match = ratesData.rates.find(r => r.id === item.id);
-              if (match) {
-                return {
-                  ...item,
-                  apiBuy: match.buy,
-                  apiSell: match.sell,
-                  baseBuy: match.buy,
-                  baseSell: match.sell,
-                  prevDayBuy: match.prevDayBuy || (match.buy - (match.changeAmount || 0)),
-                  prevDaySell: match.prevDaySell || (match.sell - (match.changeAmount || 0)),
-                  trend: match.trend || item.trend,
-                  changeAmount: match.changeAmount ?? item.changeAmount
-                };
-              }
-              return item;
-            });
-          });
-        }
-      });
-    }
-
     return () => {
       if (unsubscribeStore) unsubscribeStore();
-      if (unsubscribeRates) unsubscribeRates();
     };
   }, []);
 
