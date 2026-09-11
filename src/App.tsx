@@ -23,6 +23,36 @@ const LOCAL_STORAGE_ITEMS_KEY = 'tiem_vang_ducky_items_v1';
 const LOCAL_STORAGE_SETTINGS_KEY = 'tiem_vang_ducky_settings_v1';
 const LOCAL_STORAGE_AUTH_KEY = 'tiem_vang_admin_authenticated';
 
+// Helper to ensure inventory is 3-5 core tiệm items and purge legacy 14 external brand items
+function cleanAndFilterItems(rawItems: GoldItem[]): GoldItem[] {
+  if (!Array.isArray(rawItems) || rawItems.length === 0) {
+    return INITIAL_GOLD_ITEMS;
+  }
+
+  // Check if list contains the old 14-item auto-market seed with external brands (SJC, DOJI, PNJ, AAA)
+  const hasOldExternalBrands = rawItems.some(i => 
+    i.brand === 'SJC' || i.brand === 'DOJI' || i.brand === 'PNJ' || i.brand === 'AAA' || i.id === 'sjc-1l'
+  );
+
+  // If the user already customized their list to 3-5 tiệm items (no external brands), leave it as-is!
+  if (!hasOldExternalBrands) {
+    return rawItems;
+  }
+
+  // If it still has external brands and more than 5 items:
+  // Extract any custom items the owner added (e.g., id starts with 'custom_' or brand is 'TIỆM')
+  const tiemOrCustomItems = rawItems.filter(i => 
+    i.brand === 'TIỆM' || i.id.startsWith('custom_') || i.id.startsWith('tiem-')
+  );
+
+  if (tiemOrCustomItems.length >= 3) {
+    return tiemOrCustomItems.slice(0, 5).map((it, idx) => ({ ...it, order: idx + 1, useCustomPrice: true }));
+  }
+
+  // Otherwise, use the 5 standard tiệm gold items from INITIAL_GOLD_ITEMS
+  return INITIAL_GOLD_ITEMS;
+}
+
 // Determine initial tab from URL: ?mode=admin or /admin or #admin
 function getInitialTab(): 'board' | 'admin' | 'calculator' {
   if (typeof window !== 'undefined') {
@@ -44,7 +74,10 @@ export default function App() {
   const [items, setItems] = useState<GoldItem[]>(() => {
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_ITEMS_KEY);
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return cleanAndFilterItems(parsed);
+      }
     } catch (e) {
       console.error('Error loading items from localStorage:', e);
     }
@@ -62,6 +95,8 @@ export default function App() {
         if (!parsed.phone || parsed.phone.includes('0988.666.888')) {
           parsed.phone = INITIAL_STORE_SETTINGS.phone;
         }
+        parsed.pricingMode = 'custom_override';
+        parsed.calculationType = 'custom_override';
         return parsed;
       }
     } catch (e) {
@@ -221,34 +256,36 @@ export default function App() {
         const cloudData = await fetchStoreConfigFromFirebase();
         if (cloudData && cloudData.items && cloudData.items.length > 0) {
           isUpdatingFromRemoteRef.current = true;
-          // Verify if cloudData items have legacy stale rates (e.g. SJC < 100,000,000)
-          const sjc = cloudData.items.find(i => i.id === 'sjc-1l');
-          const isStale = !sjc || sjc.apiBuy < 100000000;
+          
+          // Clean legacy external brands if present, keep tiệm items (3-5 items)
+          const cleanedItems = cleanAndFilterItems(cloudData.items);
+          setItems(cleanedItems);
+          latestItemsRef.current = cleanedItems;
 
-          if (isStale) {
-            setItems(INITIAL_GOLD_ITEMS);
-            latestItemsRef.current = INITIAL_GOLD_ITEMS;
-            const freshSettings: StoreSettings = {
-              ...(cloudData.settings || settings),
-              pricingMode: 'auto_market'
-            };
-            latestSettingsRef.current = freshSettings;
-            setSettings(freshSettings);
-            saveStoreConfigToFirebase(INITIAL_GOLD_ITEMS, freshSettings, 'market_upgrade').catch(() => {});
-          } else {
-            setItems(cloudData.items);
-            latestItemsRef.current = cloudData.items;
-            if (cloudData.settings) {
-              latestSettingsRef.current = cloudData.settings;
-              setSettings(cloudData.settings);
-              if (cloudData.settings.displayUnit) {
-                setUnit(cloudData.settings.displayUnit);
-              }
-            }
+          const updatedSettings: StoreSettings = {
+            ...(cloudData.settings || settings),
+            pricingMode: 'custom_override',
+            calculationType: 'custom_override',
+            dataSourceName: cloudData.settings?.dataSourceName && !cloudData.settings.dataSourceName.includes('SJC')
+              ? cloudData.settings.dataSourceName
+              : 'Bảng Giá Niêm Yết Của Tiệm'
+          };
+          latestSettingsRef.current = updatedSettings;
+          setSettings(updatedSettings);
+          if (updatedSettings.displayUnit) {
+            setUnit(updatedSettings.displayUnit);
           }
+
+          // If cleanedItems differed from cloudData or pricingMode was auto, save back to Firestore immediately
+          if (cleanedItems.length !== cloudData.items.length || cloudData.settings?.pricingMode !== 'custom_override') {
+            saveStoreConfigToFirebase(cleanedItems, updatedSettings, 'manual_mode_cleanup').catch(() => {});
+          }
+
           setIsFirebaseConnected(true);
           isUpdatingFromRemoteRef.current = false;
         } else {
+          setItems(INITIAL_GOLD_ITEMS);
+          latestItemsRef.current = INITIAL_GOLD_ITEMS;
           saveStoreConfigToFirebase(INITIAL_GOLD_ITEMS, settings, 'initial_seed')
             .then(() => setIsFirebaseConnected(true))
             .catch(() => {});
@@ -256,8 +293,6 @@ export default function App() {
       } catch (err) {
         console.warn('Firebase initial load fallback:', err);
       }
-
-      fetchMarketRates(false);
     }
 
     initFirebaseData();
@@ -284,30 +319,32 @@ export default function App() {
       }
     );
 
-    // 3. Real-time subscription to market rates
-    unsubscribeRates = subscribeToMarketRates((ratesData) => {
-      if (ratesData && ratesData.rates && ratesData.rates.length > 0) {
-        setItems(prevItems => {
-          return prevItems.map(item => {
-            const match = ratesData.rates.find(r => r.id === item.id);
-            if (match) {
-              return {
-                ...item,
-                apiBuy: match.buy,
-                apiSell: match.sell,
-                baseBuy: match.buy,
-                baseSell: match.sell,
-                prevDayBuy: match.prevDayBuy || (match.buy - (match.changeAmount || 0)),
-                prevDaySell: match.prevDaySell || (match.sell - (match.changeAmount || 0)),
-                trend: match.trend || item.trend,
-                changeAmount: match.changeAmount ?? item.changeAmount
-              };
-            }
-            return item;
+    // 3. Real-time subscription to market rates (Only if auto market mode is explicitly selected)
+    if (settings.pricingMode !== 'custom_override') {
+      unsubscribeRates = subscribeToMarketRates((ratesData) => {
+        if (ratesData && ratesData.rates && ratesData.rates.length > 0) {
+          setItems(prevItems => {
+            return prevItems.map(item => {
+              const match = ratesData.rates.find(r => r.id === item.id);
+              if (match) {
+                return {
+                  ...item,
+                  apiBuy: match.buy,
+                  apiSell: match.sell,
+                  baseBuy: match.buy,
+                  baseSell: match.sell,
+                  prevDayBuy: match.prevDayBuy || (match.buy - (match.changeAmount || 0)),
+                  prevDaySell: match.prevDaySell || (match.sell - (match.changeAmount || 0)),
+                  trend: match.trend || item.trend,
+                  changeAmount: match.changeAmount ?? item.changeAmount
+                };
+              }
+              return item;
+            });
           });
-        });
-      }
-    });
+        }
+      });
+    }
 
     return () => {
       if (unsubscribeStore) unsubscribeStore();
@@ -315,15 +352,16 @@ export default function App() {
     };
   }, []);
 
-  // Periodic auto-sync based on store settings
+  // Periodic auto-sync based on store settings (ONLY if NOT in manual store pricing mode)
   useEffect(() => {
+    if (settings.pricingMode === 'custom_override') return;
     const minutes = Math.max(2, settings.autoSyncIntervalMinutes || 15);
     const interval = setInterval(() => {
       fetchMarketRates(false);
     }, minutes * 60 * 1000);
 
     return () => clearInterval(interval);
-  }, [settings.autoSyncIntervalMinutes, fetchMarketRates]);
+  }, [settings.pricingMode, settings.autoSyncIntervalMinutes, fetchMarketRates]);
 
   // Fullscreen toggle for TV mode
   const toggleFullscreen = () => {

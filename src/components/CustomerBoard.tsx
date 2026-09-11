@@ -60,8 +60,18 @@ export const CustomerBoard: React.FC<CustomerBoardProps> = ({
   const effectIntensity = settings.tvThemeEffectIntensity || 'normal';
   const showCorners = settings.tvThemeShowCorners !== false;
 
+  // Filter visible items
+  const visibleItems = items
+    .filter(item => item.visible)
+    .sort((a, b) => (a.order || 0) - (b.order || 0))
+    .map(item => ({
+      ...item,
+      cleanName: item.name.replace(/^[\s_\-–—•*]+/, '').trim()
+    }));
+
   // Layout mode for TV: checks settings.layoutMode (supports 'single_col' or 'two_col')
-  const layoutMode = settings.layoutMode || 'two_col';
+  // Default to single_col when <= 6 items so 3-5 items expand to full width with huge, easily readable fonts
+  const layoutMode = settings.layoutMode || (visibleItems.length <= 6 ? 'single_col' : 'two_col');
   const priceFormat = 'compact';
 
   // Toggle layout mode between 1 bảng duy nhất and 2 bảng song song
@@ -79,15 +89,6 @@ export const CustomerBoard: React.FC<CustomerBoardProps> = ({
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
-
-  // Filter visible items
-  const visibleItems = items
-    .filter(item => item.visible)
-    .sort((a, b) => (a.order || 0) - (b.order || 0))
-    .map(item => ({
-      ...item,
-      cleanName: item.name.replace(/^[\s_\-–—•*]+/, '').trim()
-    }));
 
   // Format price into prominent, readable TV numbers
   const formatPrice = (pricePerLuong: number) => {
@@ -190,13 +191,65 @@ export const CustomerBoard: React.FC<CustomerBoardProps> = ({
   };
 
   // Renders a balanced 4-column table:
-  // Dynamically adjusts column widths based on single_col vs two_col
+  // Dynamically adjusts column widths & scales typography up when there are 3-5 items
   const renderColumnTable = (colItems: typeof visibleItems, columnTitle?: string) => {
     const isSingle = layoutMode === 'single_col';
+    const totalCount = colItems.length;
+    // With 3-5 items, this flag activates large, high-impact display typography
+    const isFewItems = totalCount <= 6;
+
     const col1Width = isSingle ? 'w-[42%]' : 'w-[40%]';
     const col2Width = isSingle ? 'w-[23%]' : 'w-[23%]';
     const col3Width = isSingle ? 'w-[23%]' : 'w-[23%]';
     const col4Width = isSingle ? 'w-[12%]' : 'w-[14%]';
+
+    // Adaptive header styles
+    const headerTitleClass = isFewItems
+      ? (isSingle ? 'text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl font-black' : 'text-xs sm:text-sm md:text-base lg:text-lg font-black')
+      : 'text-xs sm:text-sm md:text-base font-black';
+
+    const headerSubClass = isFewItems
+      ? (isSingle ? 'text-xs sm:text-sm md:text-base font-bold text-amber-200 mt-0.5 sm:mt-1' : 'text-[10px] sm:text-xs md:text-sm font-bold text-amber-200 mt-0.5')
+      : 'text-[9px] sm:text-[11px] md:text-xs font-bold text-amber-200 mt-0.5';
+
+    const headerPadding = isFewItems
+      ? (isSingle ? 'py-2 sm:py-3 md:py-3.5' : 'py-1.5 sm:py-2 md:py-2.5')
+      : 'py-1.5 sm:py-2';
+
+    // Adaptive item typography & badges
+    const itemNameClass = isFewItems
+      ? (isSingle 
+          ? (totalCount <= 4 
+              ? 'text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-[40px] 2xl:text-[46px] font-black text-neutral-950 tracking-tight leading-tight'
+              : 'text-lg sm:text-2xl md:text-3xl lg:text-4xl xl:text-[36px] 2xl:text-[42px] font-black text-neutral-950 tracking-tight leading-tight')
+          : (totalCount <= 3 
+              ? 'text-base sm:text-xl md:text-2xl lg:text-3xl xl:text-[30px] font-black text-neutral-950 tracking-tight leading-tight'
+              : 'text-sm sm:text-lg md:text-xl lg:text-2xl xl:text-[26px] font-black text-neutral-950 tracking-tight leading-tight'))
+      : 'text-xs sm:text-sm md:text-base lg:text-base xl:text-lg font-black text-neutral-950 truncate leading-tight';
+
+    const priceClass = isFewItems
+      ? (isSingle 
+          ? (totalCount <= 4
+              ? 'text-2xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-[66px] 2xl:text-[76px] font-black tracking-tight font-sans tabular-nums leading-none'
+              : 'text-2xl sm:text-3xl md:text-5xl lg:text-6xl xl:text-[60px] 2xl:text-[68px] font-black tracking-tight font-sans tabular-nums leading-none')
+          : (totalCount <= 3 
+              ? 'text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-[46px] font-black tracking-tight font-sans tabular-nums leading-none'
+              : 'text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-[38px] font-black tracking-tight font-sans tabular-nums leading-none'))
+      : (isSingle 
+          ? 'text-lg sm:text-xl lg:text-2xl font-black tracking-tight font-sans tabular-nums leading-none'
+          : 'text-base sm:text-lg lg:text-xl xl:text-2xl font-black tracking-tight font-sans tabular-nums leading-none');
+
+    const badgeClass = isFewItems
+      ? (isSingle ? 'text-xs sm:text-sm md:text-base font-black px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg shadow-2xs' : 'text-[10px] sm:text-xs font-black px-1.5 py-0.5 rounded')
+      : 'text-[10px] sm:text-xs font-black px-1.5 py-0.5 rounded';
+
+    const trendTextClass = isFewItems
+      ? (isSingle ? 'text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl font-black' : 'text-xs sm:text-sm md:text-base font-black')
+      : 'text-xs sm:text-sm lg:text-base font-black';
+
+    const trendIconClass = isFewItems
+      ? (isSingle ? 'w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 flex-shrink-0' : 'w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0')
+      : 'w-3.5 h-3.5 flex-shrink-0';
 
     return (
       <div className="flex-1 flex flex-col h-full bg-white rounded-xl sm:rounded-2xl border border-neutral-300 shadow-xl ring-1 ring-amber-400/40 overflow-hidden">
@@ -209,28 +262,28 @@ export const CustomerBoard: React.FC<CustomerBoardProps> = ({
         )}
 
         {/* 4 Column Headers: LOẠI VÀNG (Đỏ chuẩn tiệm vàng) | MUA VÀO | BÁN RA | CHÊNH LỆCH */}
-        <div className="flex items-stretch text-white text-xs sm:text-sm md:text-base font-black uppercase tracking-wider flex-shrink-0 bg-[#B91C1C] border-b-2 border-amber-400 shadow-2xs">
+        <div className="flex items-stretch text-white font-black uppercase tracking-wider flex-shrink-0 bg-[#B91C1C] border-b-2 border-amber-400 shadow-2xs">
           {/* Col 1: LOẠI VÀNG */}
-          <div className={`${col1Width} px-2 sm:px-3.5 py-1.5 sm:py-2 flex items-center bg-[#B91C1C]`}>
-            <span className="text-xs sm:text-sm md:text-base font-black tracking-wide">LOẠI VÀNG</span>
+          <div className={`${col1Width} px-3 sm:px-5 ${headerPadding} flex items-center bg-[#B91C1C]`}>
+            <span className={headerTitleClass}>LOẠI VÀNG</span>
           </div>
 
           {/* Col 2: MUA VÀO */}
-          <div className={`${col2Width} px-1 py-1.5 sm:py-2 text-center bg-[#B91C1C] border-l border-red-800/80 flex flex-col justify-center items-center`}>
-            <div className="leading-tight font-black text-xs sm:text-sm md:text-base text-white">MUA VÀO</div>
-            <div className="text-[9px] sm:text-[11px] md:text-xs font-bold text-amber-200 uppercase leading-tight mt-0.5">({getUnitSubtitle()})</div>
+          <div className={`${col2Width} px-1.5 ${headerPadding} text-center bg-[#B91C1C] border-l border-red-800/80 flex flex-col justify-center items-center`}>
+            <div className={`leading-tight text-white ${headerTitleClass}`}>MUA VÀO</div>
+            <div className={`uppercase leading-tight ${headerSubClass}`}>({getUnitSubtitle()})</div>
           </div>
 
           {/* Col 3: BÁN RA */}
-          <div className={`${col3Width} px-1 py-1.5 sm:py-2 text-center bg-[#B91C1C] border-l border-red-800/80 flex flex-col justify-center items-center`}>
-            <div className="leading-tight font-black text-xs sm:text-sm md:text-base text-white">BÁN RA</div>
-            <div className="text-[9px] sm:text-[11px] md:text-xs font-bold text-amber-200 uppercase leading-tight mt-0.5">({getUnitSubtitle()})</div>
+          <div className={`${col3Width} px-1.5 ${headerPadding} text-center bg-[#B91C1C] border-l border-red-800/80 flex flex-col justify-center items-center`}>
+            <div className={`leading-tight text-white ${headerTitleClass}`}>BÁN RA</div>
+            <div className={`uppercase leading-tight ${headerSubClass}`}>({getUnitSubtitle()})</div>
           </div>
 
           {/* Col 4: CHÊNH LỆCH */}
-          <div className={`${col4Width} px-0.5 py-1.5 sm:py-2 text-center bg-[#B91C1C] border-l border-red-800/80 flex flex-col justify-center items-center`}>
-            <div className="leading-tight font-black text-[10px] sm:text-xs md:text-sm text-white">CHÊNH LỆCH</div>
-            <div className="text-[8px] sm:text-[9px] md:text-[10px] font-bold text-amber-200 lowercase leading-tight mt-0.5 hidden xs:block">(so hôm qua)</div>
+          <div className={`${col4Width} px-0.5 ${headerPadding} text-center bg-[#B91C1C] border-l border-red-800/80 flex flex-col justify-center items-center`}>
+            <div className={`leading-tight text-white ${headerTitleClass}`}>CHÊNH LỆCH</div>
+            <div className={`lowercase leading-tight hidden xs:block ${headerSubClass}`}>(so hôm qua)</div>
           </div>
         </div>
 
@@ -246,52 +299,58 @@ export const CustomerBoard: React.FC<CustomerBoardProps> = ({
                 key={item.id}
                 className="flex items-center flex-1 min-h-0 bg-white hover:bg-neutral-50/80 transition-colors overflow-hidden"
               >
-                {/* Col 1: LOẠI VÀNG (Chữ vừa vặn, rõ nét, 1 dòng không bị tràn chèn lên nhau) */}
-                <div className={`${col1Width} px-2 sm:px-3 py-0.5 flex items-center gap-1 sm:gap-2 min-w-0 bg-white overflow-hidden`}>
-                  <span className="flex-shrink-0 text-[10px] sm:text-xs font-black px-1.5 py-0.5 rounded bg-amber-100 text-amber-950 border border-amber-300 shadow-2xs">
+                {/* Col 1: LOẠI VÀNG (Chữ to, rõ nét, sang trọng) */}
+                <div className={`${col1Width} px-2.5 sm:px-4 md:px-5 py-1 sm:py-2 flex items-center gap-2 sm:gap-3.5 min-w-0 bg-white overflow-hidden`}>
+                  <span className={`flex-shrink-0 bg-amber-100 text-amber-950 border border-amber-300 ${badgeClass}`}>
                     {item.brand}
                   </span>
-                  <span 
-                    className="font-black text-neutral-950 text-xs sm:text-sm md:text-base lg:text-base xl:text-lg truncate leading-tight"
-                    title={item.cleanName}
-                  >
-                    {item.cleanName}
-                  </span>
+                  <div className="flex flex-col min-w-0 justify-center">
+                    <span 
+                      className={itemNameClass}
+                      title={item.cleanName}
+                    >
+                      {item.cleanName}
+                    </span>
+                    {/* Hiển thị thêm thông tin tuổi vàng / hàm lượng khi bảng có ít loại vàng để lấp đầy không gian tinh tế */}
+                    {isFewItems && isSingle && (item.purity || item.note) && (
+                      <div className="text-[11px] sm:text-xs md:text-sm xl:text-base font-semibold text-neutral-500 mt-0.5 truncate">
+                        {item.purity ? `Tuổi vàng: ${item.purity}` : ''}
+                        {item.purity && item.note ? ' • ' : ''}
+                        {item.note || ''}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                {/* Col 2: MUA VÀO (Chữ xanh dương hoàng gia, cân đối rõ ràng) */}
-                <div className={`${col2Width} px-1 py-0.5 text-center border-l border-neutral-200/80 flex items-center justify-center self-stretch bg-white`}>
-                  <div className={`font-black text-[#1D4ED8] tracking-tight font-sans tabular-nums leading-none ${
-                    isSingle ? 'text-lg sm:text-xl lg:text-2xl' : 'text-base sm:text-lg lg:text-xl xl:text-2xl'
-                  }`}>
+                {/* Col 2: MUA VÀO (Chữ xanh dương hoàng gia, số to nét căng) */}
+                <div className={`${col2Width} px-1 py-1 sm:py-2 text-center border-l border-neutral-200/80 flex items-center justify-center self-stretch bg-white`}>
+                  <div className={`text-[#1D4ED8] ${priceClass}`}>
                     {formatPrice(finalBuy)}
                   </div>
                 </div>
 
-                {/* Col 3: BÁN RA (Chữ đỏ ruby, cân đối rõ ràng) */}
-                <div className={`${col3Width} px-1 py-0.5 text-center border-l border-neutral-200/80 flex items-center justify-center self-stretch bg-white`}>
-                  <div className={`font-black text-[#DC2626] tracking-tight font-sans tabular-nums leading-none ${
-                    isSingle ? 'text-lg sm:text-xl lg:text-2xl' : 'text-base sm:text-lg lg:text-xl xl:text-2xl'
-                  }`}>
+                {/* Col 3: BÁN RA (Chữ đỏ ruby, số to nét căng) */}
+                <div className={`${col3Width} px-1 py-1 sm:py-2 text-center border-l border-neutral-200/80 flex items-center justify-center self-stretch bg-white`}>
+                  <div className={`text-[#DC2626] ${priceClass}`}>
                     {formatPrice(finalSell)}
                   </div>
                 </div>
 
                 {/* Col 4: CHÊNH LỆCH */}
-                <div className={`${col4Width} px-0.5 py-0.5 text-center border-l border-neutral-200/80 flex items-center justify-center self-stretch bg-white`}>
+                <div className={`${col4Width} px-0.5 py-1 sm:py-2 text-center border-l border-neutral-200/80 flex items-center justify-center self-stretch bg-white`}>
                   {isUp ? (
-                    <div className="inline-flex items-center gap-0.5 text-emerald-700 font-black text-xs sm:text-sm lg:text-base leading-none">
-                      <TrendingUp className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+                    <div className={`inline-flex items-center gap-1 text-emerald-700 leading-none ${trendTextClass}`}>
+                      <TrendingUp className={`text-emerald-600 ${trendIconClass}`} />
                       <span>+{formatDailyChange(dailyChangeAmount)}</span>
                     </div>
                   ) : isDown ? (
-                    <div className="inline-flex items-center gap-0.5 text-rose-700 font-black text-xs sm:text-sm lg:text-base leading-none">
-                      <TrendingDown className="w-3.5 h-3.5 text-rose-600 flex-shrink-0" />
+                    <div className={`inline-flex items-center gap-1 text-rose-700 leading-none ${trendTextClass}`}>
+                      <TrendingDown className={`text-rose-600 ${trendIconClass}`} />
                       <span>-{formatDailyChange(dailyChangeAmount)}</span>
                     </div>
                   ) : (
-                    <div className="inline-flex items-center gap-0.5 text-neutral-400 font-bold text-xs sm:text-sm leading-none">
-                      <Minus className="w-3.5 h-3.5 text-neutral-400" />
+                    <div className={`inline-flex items-center gap-1 text-neutral-400 font-bold leading-none ${trendTextClass}`}>
+                      <Minus className={`text-neutral-400 ${trendIconClass}`} />
                       <span>0</span>
                     </div>
                   )}
@@ -499,15 +558,15 @@ export const CustomerBoard: React.FC<CustomerBoardProps> = ({
             </button>
           </div>
         ) : layoutMode === 'single_col' ? (
-          /* Bố cục 1 cột: Toàn bộ danh sách gom thành 1 bảng */
-          <div className="h-full max-w-6xl mx-auto w-full overflow-hidden flex flex-col justify-stretch">
+          /* Bố cục 1 cột: Toàn bộ danh sách gom thành 1 bảng lớn bao quát màn hình */
+          <div className="h-full w-full max-w-7xl mx-auto overflow-hidden flex flex-col justify-stretch">
             {renderColumnTable(visibleItems)}
           </div>
         ) : (
           /* Bố cục 2 cột: Chuẩn TV 16:9 - 2 cột chia đôi màn hình vừa khít */
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 h-full overflow-hidden">
-            {renderColumnTable(col1Items, 'Vàng Miếng & Vàng Nhẫn Chuẩn (SJC, PNJ, DOJI)')}
-            {renderColumnTable(col2Items, 'Vàng Nữ Trang, Vàng 24K, 18K, 14K, 10K')}
+            {renderColumnTable(col1Items, 'Vàng Miếng & Vàng Nhẫn 999.9')}
+            {renderColumnTable(col2Items, 'Vàng Nữ Trang, Vàng 24K, 18K, 14K')}
           </div>
         )}
       </main>
@@ -524,14 +583,14 @@ export const CustomerBoard: React.FC<CustomerBoardProps> = ({
             <div className="inline-block animate-marquee text-xs sm:text-sm font-semibold text-neutral-800 tracking-wide">
               {(settings.marqueeNotice && settings.marqueeNotice.trim())
                 ? settings.marqueeNotice
-                : `${storeName} KÍNH CHÀO QUÝ KHÁCH • ĐỊA CHỈ: ${storeAddress} • ĐIỆN THOẠI: ${storePhone} • BẢNG GIÁ ĐỒNG BỘ TRỰC TIẾP THEO THỜI GIAN THỰC TỪ SJC, PNJ, DOJI, AAA • CAM KẾT ĐÚNG TUỔI VÀNG 100%, ĐỦ TRỌNG LƯỢNG, BẢO HÀNH LÀM SÁNG TRỌN ĐỜI • THU MUA VÀ THU ĐỔI VÀNG CŨ GIÁ TỐT NHẤT.`
+                : `${storeName} KÍNH CHÀO QUÝ KHÁCH • ĐỊA CHỈ: ${storeAddress} • ĐIỆN THOẠI: ${storePhone} • BẢNG GIÁ NIÊM YẾT CHÍNH THỨC CỦA TIỆM • CAM KẾT ĐÚNG TUỔI VÀNG 100%, ĐỦ TRỌNG LƯỢNG, BẢO HÀNH LÀM SÁNG TRỌN ĐỜI • THU MUA VÀ THU ĐỔI VÀNG CŨ GIÁ TỐT NHẤT.`
               }
               <span className="mx-6 text-amber-500">★ ★ ★</span>
               <span>Hotline: {storePhone}</span>
               <span className="mx-6 text-amber-500">★ ★ ★</span>
               <span>Địa chỉ: {storeAddress}</span>
               <span className="mx-6 text-amber-500">★ ★ ★</span>
-              <span>Cập nhật: {settings.dataSourceName || 'SJC, PNJ, DOJI'} lúc {settings.lastSyncedAt || 'vừa xong'}</span>
+              <span>Cập nhật: {settings.dataSourceName || 'Bảng giá tiệm'} lúc {settings.lastSyncedAt || 'hôm nay'}</span>
             </div>
           </div>
         </div>
