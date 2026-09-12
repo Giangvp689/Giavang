@@ -22,12 +22,13 @@ const LOCAL_STORAGE_ITEMS_KEY = 'tiem_vang_ducky_items_v1';
 const LOCAL_STORAGE_SETTINGS_KEY = 'tiem_vang_ducky_settings_v1';
 const LOCAL_STORAGE_AUTH_KEY = 'tiem_vang_admin_authenticated';
 
-// Helper to preserve store owner's items or fallback to initial defaults if empty
+// Helper to preserve store owner's items without injecting hardcoded defaults
 function cleanAndFilterItems(rawItems: GoldItem[]): GoldItem[] {
-  if (!Array.isArray(rawItems) || rawItems.length === 0) {
-    return INITIAL_GOLD_ITEMS;
+  if (!Array.isArray(rawItems)) {
+    return [];
   }
-  return rawItems;
+  // Exclude legacy benchmark items if found in cache
+  return rawItems.filter(it => it && it.id !== 'sjc-1l' && it.id !== 'sjc-nhan-9999');
 }
 
 // Determine initial tab from URL: ?mode=admin or /admin or #admin
@@ -47,18 +48,25 @@ function getInitialTab(): 'board' | 'admin' | 'calculator' {
 }
 
 export default function App() {
-  // Initialize state with fallback to localStorage or built-in defaults
+  // Chỉ lấy dữ liệu từ Firebase hoặc cache hợp lệ, không nạp 14 loại vàng mặc định
   const [items, setItems] = useState<GoldItem[]>(() => {
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_ITEMS_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        return cleanAndFilterItems(parsed);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const isLegacy14 = parsed.length >= 14 || parsed.some(it => it.id === 'sjc-1l' || it.id === 'pnj-mieng');
+          if (!isLegacy14) {
+            return cleanAndFilterItems(parsed);
+          } else {
+            localStorage.removeItem(LOCAL_STORAGE_ITEMS_KEY);
+          }
+        }
       }
     } catch (e) {
       console.error('Error loading items from localStorage:', e);
     }
-    return INITIAL_GOLD_ITEMS;
+    return [];
   });
 
   const [settings, setSettings] = useState<StoreSettings>(() => {
@@ -87,6 +95,7 @@ export default function App() {
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(true);
   const [isFirebaseConnected, setIsFirebaseConnected] = useState<boolean>(false);
+  const [isInitialLoading, setIsInitialLoading] = useState<boolean>(true);
   const [lastSyncTime, setLastSyncTime] = useState<string>('');
 
   // Admin authentication state (PIN 1234)
@@ -197,48 +206,45 @@ export default function App() {
   useEffect(() => {
     let unsubscribeStore: (() => void) | undefined;
 
-    // 1. Initial load from Firestore or seed if empty
+    // 1. Initial load from Firestore: Chỉ lấy dữ liệu từ Firebase
     async function initFirebaseData() {
       try {
         const cloudData = await fetchStoreConfigFromFirebase();
-        if (cloudData && cloudData.items && cloudData.items.length > 0) {
+        if (cloudData) {
           isUpdatingFromRemoteRef.current = true;
           
-          // Clean legacy external brands if present, keep tiệm items (3-5 items)
-          const cleanedItems = cleanAndFilterItems(cloudData.items);
-          setItems(cleanedItems);
-          latestItemsRef.current = cleanedItems;
-
-          const updatedSettings: StoreSettings = {
-            ...(cloudData.settings || settings),
-            pricingMode: 'custom_override',
-            calculationType: 'custom_override',
-            dataSourceName: cloudData.settings?.dataSourceName && !cloudData.settings.dataSourceName.includes('SJC')
-              ? cloudData.settings.dataSourceName
-              : 'Bảng Giá Niêm Yết Của Tiệm'
-          };
-          latestSettingsRef.current = updatedSettings;
-          setSettings(updatedSettings);
-          if (updatedSettings.displayUnit) {
-            setUnit(updatedSettings.displayUnit);
+          if (Array.isArray(cloudData.items)) {
+            const cleanedItems = cleanAndFilterItems(cloudData.items);
+            setItems(cleanedItems);
+            latestItemsRef.current = cleanedItems;
+            try {
+              localStorage.setItem(LOCAL_STORAGE_ITEMS_KEY, JSON.stringify(cleanedItems));
+            } catch (e) {}
           }
 
-          // If cleanedItems differed from cloudData or pricingMode was auto, save back to Firestore immediately
-          if (cleanedItems.length !== cloudData.items.length || cloudData.settings?.pricingMode !== 'custom_override') {
-            saveStoreConfigToFirebase(cleanedItems, updatedSettings, 'manual_mode_cleanup').catch(() => {});
+          if (cloudData.settings) {
+            const updatedSettings: StoreSettings = {
+              ...cloudData.settings,
+              pricingMode: 'custom_override',
+              calculationType: 'custom_override',
+              dataSourceName: cloudData.settings?.dataSourceName && !cloudData.settings.dataSourceName.includes('SJC')
+                ? cloudData.settings.dataSourceName
+                : 'Bảng Giá Niêm Yết Của Tiệm'
+            };
+            latestSettingsRef.current = updatedSettings;
+            setSettings(updatedSettings);
+            if (updatedSettings.displayUnit) {
+              setUnit(updatedSettings.displayUnit);
+            }
           }
 
           setIsFirebaseConnected(true);
           isUpdatingFromRemoteRef.current = false;
-        } else {
-          setItems(INITIAL_GOLD_ITEMS);
-          latestItemsRef.current = INITIAL_GOLD_ITEMS;
-          saveStoreConfigToFirebase(INITIAL_GOLD_ITEMS, settings, 'initial_seed')
-            .then(() => setIsFirebaseConnected(true))
-            .catch(() => {});
         }
       } catch (err) {
         console.warn('Firebase initial load fallback:', err);
+      } finally {
+        setIsInitialLoading(false);
       }
     }
 
@@ -248,9 +254,13 @@ export default function App() {
     unsubscribeStore = subscribeToStoreConfig(
       (data) => {
         setIsFirebaseConnected(true);
-        if (data.items && Array.isArray(data.items) && data.items.length > 0) {
-          setItems(data.items);
-          latestItemsRef.current = data.items;
+        if (data.items && Array.isArray(data.items)) {
+          const cleaned = cleanAndFilterItems(data.items);
+          setItems(cleaned);
+          latestItemsRef.current = cleaned;
+          try {
+            localStorage.setItem(LOCAL_STORAGE_ITEMS_KEY, JSON.stringify(cleaned));
+          } catch (e) {}
         }
         if (data.settings) {
           latestSettingsRef.current = data.settings;
@@ -260,9 +270,11 @@ export default function App() {
           }
         }
         setLastSyncTime(new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }));
+        setIsInitialLoading(false);
       },
       (err) => {
         console.warn('[Firebase] Connection status:', err);
+        setIsInitialLoading(false);
       }
     );
 
@@ -375,6 +387,16 @@ export default function App() {
     setActiveTab('board');
     updateUrlMode('tv');
   };
+
+  // Màn hình chờ khi lần đầu tải dữ liệu trực tiếp từ Firebase
+  if (isInitialLoading && items.length === 0) {
+    return (
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#FAF7F0] text-neutral-800">
+        <div className="w-10 h-10 border-3 border-amber-600 border-t-transparent rounded-full animate-spin mb-3"></div>
+        <span className="font-bold text-sm tracking-wide text-neutral-700">Đang tải bảng giá từ Firebase...</span>
+      </div>
+    );
+  }
 
   return (
     <div className={`min-h-screen bg-[#F8F9FA] text-neutral-900 flex flex-col selection:bg-red-600 selection:text-white ${

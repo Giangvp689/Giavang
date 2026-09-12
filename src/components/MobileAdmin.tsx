@@ -263,11 +263,15 @@ export const MobileAdmin: React.FC<MobileAdminProps> = ({
       customBuy: vndBuyPerLuong,
       customSell: vndSellPerLuong,
       visible: newItemVisible,
-      order: localItems.length + 1,
+      order: 1,
       updatedAt: new Date().toISOString()
     };
 
-    const updated = [...localItems, newItem];
+    // Mặc định đưa loại vàng mới thêm lên đầu danh sách và đánh số lại thứ tự
+    const updated = [newItem, ...localItems].map((item, idx) => ({
+      ...item,
+      order: idx + 1
+    }));
     setLocalItems(updated);
     onUpdateItems(updated);
     if (onSaveAll) {
@@ -827,81 +831,89 @@ export const MobileAdmin: React.FC<MobileAdminProps> = ({
                           : 'border-neutral-200'
                     }`}
                   >
-                    {/* Header thẻ vàng: Tên loại vàng + Nút Lên/Xuống + Sửa + Xóa + Ẩn/Hiện */}
-                    <div className="flex items-center justify-between gap-1.5 border-b border-neutral-100 pb-2">
-                      <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <span className="text-xs font-black px-2 py-0.5 rounded-md bg-amber-100 text-amber-950 border border-amber-300 flex-shrink-0">
-                          {item.brand}
-                        </span>
-                        <div className="min-w-0">
-                          <h3 className="text-sm font-black text-neutral-900 truncate leading-snug">
+                    {/* Header thẻ vàng: Tên loại vàng hiển thị trọn vẹn 100% không bị ẩn chữ + Thanh nút thao tác */}
+                    <div className="border-b border-neutral-100 pb-2.5 space-y-2">
+                      {/* Dòng 1: Tên loại vàng to rõ, trọn vẹn 100% không bị che khuất + Thương hiệu + Tuổi vàng */}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2 flex-wrap min-w-0">
+                          <span className="text-xs font-black px-2 py-0.5 rounded-md bg-amber-100 text-amber-950 border border-amber-300 flex-shrink-0">
+                            {item.brand}
+                          </span>
+                          <h3 className="text-sm sm:text-base font-black text-neutral-900 leading-snug break-words">
                             {item.name}
                           </h3>
-                          <span className="text-[10px] text-neutral-500 font-medium">
-                            Tuổi: {item.purity}
-                          </span>
                         </div>
+                        <span className="text-[11px] text-neutral-500 font-semibold bg-neutral-100 px-2 py-0.5 rounded-md flex-shrink-0 border border-neutral-200/60">
+                          Tuổi: {item.purity}
+                        </span>
                       </div>
 
-                      {/* Nhóm nút quản trị nhanh cho từng loại vàng */}
-                      <div className="flex items-center gap-1 flex-shrink-0">
-                        {/* Đổi thứ tự hiển thị */}
-                        <div className="flex items-center bg-neutral-100 rounded-lg p-0.5 border border-neutral-200">
-                          <button
-                            type="button"
-                            onClick={() => handleMoveItem(item.id, 'up')}
-                            disabled={idx === 0}
-                            className="p-1 text-neutral-600 hover:text-neutral-900 disabled:opacity-25 cursor-pointer"
-                            title="Di chuyển lên trên"
-                          >
-                            <ChevronUp className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleMoveItem(item.id, 'down')}
-                            disabled={idx === filteredItems.length - 1}
-                            className="p-1 text-neutral-600 hover:text-neutral-900 disabled:opacity-25 cursor-pointer"
-                            title="Di chuyển xuống dưới"
-                          >
-                            <ChevronDown className="w-3.5 h-3.5" />
-                          </button>
+                      {/* Dòng 2: Nhóm nút quản trị thao tác tiện lợi, to rõ, dễ bấm trên màn hình điện thoại */}
+                      <div className="flex items-center justify-between gap-1.5 pt-0.5">
+                        {/* Đổi thứ tự hiển thị (Lên/Xuống) */}
+                        <div className="flex items-center gap-1.5">
+                          <div className="flex items-center bg-neutral-100 rounded-lg p-0.5 border border-neutral-200">
+                            <button
+                              type="button"
+                              onClick={() => handleMoveItem(item.id, 'up')}
+                              disabled={idx === 0}
+                              className="p-1.5 text-neutral-700 hover:text-neutral-950 disabled:opacity-25 cursor-pointer active:scale-90 transition-transform"
+                              title="Di chuyển lên trên"
+                            >
+                              <ChevronUp className="w-3.5 h-3.5 stroke-[2.5]" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleMoveItem(item.id, 'down')}
+                              disabled={idx === filteredItems.length - 1}
+                              className="p-1.5 text-neutral-700 hover:text-neutral-950 disabled:opacity-25 cursor-pointer active:scale-90 transition-transform"
+                              title="Di chuyển xuống dưới"
+                            >
+                              <ChevronDown className="w-3.5 h-3.5 stroke-[2.5]" />
+                            </button>
+                          </div>
+                          <span className="text-[10px] font-bold text-neutral-400">Vị trí #{idx + 1}</span>
                         </div>
 
-                        {/* Sửa thông tin loại vàng */}
-                        <button
-                          type="button"
-                          onClick={() => openEditModal(item)}
-                          className="p-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
-                          title="Sửa tên, tuổi vàng, thương hiệu"
-                        >
-                          <Pencil className="w-3.5 h-3.5 text-amber-800" />
-                          <span className="text-[10px] hidden xs:inline">Sửa</span>
-                        </button>
+                        {/* Nút Sửa + Xóa + Ẩn/Hiện TV */}
+                        <div className="flex items-center gap-1.5">
+                          {/* Sửa thông tin */}
+                          <button
+                            type="button"
+                            onClick={() => openEditModal(item)}
+                            className="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors active:scale-95"
+                            title="Sửa tên, tuổi vàng, thương hiệu"
+                          >
+                            <Pencil className="w-3.5 h-3.5 text-amber-800" />
+                            <span>Sửa</span>
+                          </button>
 
-                        {/* Xóa loại vàng */}
-                        <button
-                          type="button"
-                          onClick={() => setDeleteConfirmItem(item)}
-                          className="px-2 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
-                          title={`Xóa loại vàng "${item.name}"`}
-                        >
-                          <Trash2 className="w-3.5 h-3.5 text-red-600" />
-                          <span className="text-[10px] text-red-700 font-bold">Xóa</span>
-                        </button>
+                          {/* Xóa loại vàng */}
+                          <button
+                            type="button"
+                            onClick={() => setDeleteConfirmItem(item)}
+                            className="px-2.5 py-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors active:scale-95"
+                            title={`Xóa loại vàng "${item.name}"`}
+                          >
+                            <Trash2 className="w-3.5 h-3.5 text-red-600" />
+                            <span>Xóa</span>
+                          </button>
 
-                        {/* Công tắc Ẩn/Hiện trên TV */}
-                        <button
-                          type="button"
-                          onClick={() => handleToggleVisibility(item.id)}
-                          className={`p-1.5 rounded-lg border text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors ${
-                            item.visible
-                              ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
-                              : 'bg-neutral-100 text-neutral-500 border-neutral-200'
-                          }`}
-                          title={item.visible ? 'Đang hiện trên TV (Bấm để ẩn)' : 'Đang ẩn trên TV (Bấm để hiện)'}
-                        >
-                          {item.visible ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-                        </button>
+                          {/* Công tắc Ẩn/Hiện trên TV */}
+                          <button
+                            type="button"
+                            onClick={() => handleToggleVisibility(item.id)}
+                            className={`px-2.5 py-1 rounded-lg border text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors active:scale-95 ${
+                              item.visible
+                                ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                                : 'bg-neutral-100 text-neutral-500 border-neutral-200'
+                            }`}
+                            title={item.visible ? 'Đang hiện trên TV (Bấm để ẩn)' : 'Đang ẩn trên TV (Bấm để hiện)'}
+                          >
+                            {item.visible ? <Eye className="w-3.5 h-3.5 text-emerald-700" /> : <EyeOff className="w-3.5 h-3.5 text-neutral-500" />}
+                            <span className="text-[10px]">{item.visible ? 'Hiện TV' : 'Ẩn'}</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
 

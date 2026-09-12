@@ -157,11 +157,14 @@ export const OwnerAdmin: React.FC<OwnerAdminProps> = ({
       customBuy: null,
       customSell: null,
       visible: true,
-      order: localItems.length + 1,
+      order: 1,
       note: newNote.trim()
     };
 
-    const updated = [...localItems, newItem];
+    const updated = [newItem, ...localItems].map((item, idx) => ({
+      ...item,
+      order: idx + 1
+    }));
     setLocalItems(updated);
     onUpdateItems(updated);
     setShowAddModal(false);
